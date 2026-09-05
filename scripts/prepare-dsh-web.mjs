@@ -746,13 +746,13 @@ function patchConversationBundle(source) {
   next = mustReplace(
     next,
     '			"hero.chooseWorkspace": "选择工作区",',
-    '			"hero.chooseWorkspace": "选择工作区",\n			"hero.cloudWorkspace": "云端工作区",',
+    '			"hero.chooseWorkspace": "选择工作区",\n			"hero.cloudWorkspace": "EdgeOne 沙箱",',
     'conversation zh locale',
   )
   next = mustReplace(
     next,
     '			"hero.chooseWorkspace": "Choose workspace",',
-    '			"hero.chooseWorkspace": "Choose workspace",\n			"hero.cloudWorkspace": "Cloud Workspace",',
+    '			"hero.chooseWorkspace": "Choose workspace",\n			"hero.cloudWorkspace": "EdgeOne Sandbox",',
     'conversation en locale',
   )
   next = mustReplace(
@@ -830,6 +830,40 @@ function patchConversationBundle(source) {
 					}),`,
     'workspace chip click',
   )
+  next = mustReplace(
+    next,
+    `			const inert = sessionId === void 0 || hero && chipTitle === void 0;`,
+    `			const inert = sessionId === void 0 && workspaces.items.length === 0;`,
+    'composer starts without workspace picker',
+  )
+  next = mustReplace(
+    next,
+    `			(0, react.useEffect)(() => {
+				if (pendingWorkspaceId === void 0) return;
+				if (sessionWorkspace?.workspaceId === pendingWorkspaceId || workspaces.phase === "ready" && pendingWorkspace === void 0) setPendingWorkspaceId(void 0);
+			}, [
+				pendingWorkspaceId,
+				sessionWorkspace?.workspaceId,
+				workspaces.phase,
+				pendingWorkspace
+			]);`,
+    `			(0, react.useEffect)(() => {
+				if (pendingWorkspaceId === void 0) return;
+				if (sessionWorkspace?.workspaceId === pendingWorkspaceId || workspaces.phase === "ready" && pendingWorkspace === void 0) setPendingWorkspaceId(void 0);
+			}, [
+				pendingWorkspaceId,
+				sessionWorkspace?.workspaceId,
+				workspaces.phase,
+				pendingWorkspace
+			]);
+			(0, react.useEffect)(() => {
+				if (sessionId !== void 0 || workspaces.phase !== "ready") return;
+				const only = workspaces.items[0];
+				if (only === void 0) return;
+				selectWorkspace(only.workspaceId).catch(() => {});
+			}, [sessionId, workspaces.phase, workspaces.items, selectWorkspace]);`,
+    'auto-select the only sandbox workspace',
+  )
   return next
 }
 
@@ -838,13 +872,13 @@ function patchWorkspaceBundle(source) {
   next = mustReplace(
     next,
     '			"section.workspaces": "工作区",',
-    '			"section.workspaces": "云端工作区",',
+    '			"section.workspaces": "EdgeOne 沙箱",',
     'workspace zh section',
   )
   next = mustReplace(
     next,
     '			"section.workspaces": "Workspaces",',
-    '			"section.workspaces": "Cloud Workspace",',
+    '			"section.workspaces": "EdgeOne Sandbox",',
     'workspace en section',
   )
   next = mustReplace(
@@ -1134,9 +1168,9 @@ const makersActionsHead = [
   '[class*="_centerCol"]{position:relative;container:dsh-center / inline-size}',
   '[class*="_titleRow"]{position:relative}',
   '[class*="_composerHero"]{z-index:5}',
-  '#dsh-makers-chrome{position:absolute;top:0;right:0;left:0;z-index:0;display:flex;align-items:center;justify-content:flex-end;box-sizing:border-box;height:50px;padding:8px 16px;pointer-events:none}',
+  '#dsh-makers-chrome{position:absolute;top:0;left:16px;right:auto;z-index:1;display:flex;align-items:center;justify-content:flex-start;box-sizing:border-box;height:50px;padding:8px;pointer-events:none}',
   '#dsh-makers-chrome>*{pointer-events:auto}',
-  '#dsh-makers-actions{position:relative;z-index:0;display:flex;align-items:center;gap:2px;margin:0;padding:0;border:none;background:transparent;font-family:inherit;flex:none}',
+  '#dsh-makers-actions{position:relative;z-index:1;display:flex;align-items:center;gap:2px;margin:0 8px 0 0;padding:0;border:none;background:transparent;font-family:inherit;flex:none}',
   '#dsh-makers-actions[data-docked=true]{position:static}',
   '#dsh-makers-actions a{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:none;border-radius:9px;color:#57606a;background:transparent;text-decoration:none;font:inherit;font-size:14px;font-weight:500;line-height:20px;white-space:nowrap;cursor:pointer;transition:background .16s,color .16s}',
   '#dsh-makers-actions a:hover{background:#f2f4f7;color:#1f2328}',
@@ -1193,7 +1227,7 @@ const makersActionsHead = [
   '        const header = headerOf(row);',
   '        const utilities = header?.querySelector("[class*=\\"_headerUtilities\\"]");',
   '        if (headerVisible(header) && utilities) {',
-  '          if (nav.parentElement !== utilities) utilities.append(nav);',
+  '          if (nav.parentElement !== utilities) utilities.insertBefore(nav, utilities.firstChild);',
   '          chrome.remove();',
   '          nav.dataset.docked = "true";',
   '        } else {',

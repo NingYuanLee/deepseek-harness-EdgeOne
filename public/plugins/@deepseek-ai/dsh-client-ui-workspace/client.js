@@ -2444,7 +2444,7 @@ window.__ModuleLoader__.load({
 		const zh = {
 			"group.ungrouped": "未分组",
 			"session.new": "新会话",
-			"section.workspaces": "云端工作区",
+			"section.workspaces": "EdgeOne 沙箱",
 			"section.sessions": "会话",
 			"viewOptions.label": "视图选项",
 			"groupBy.label": "分组方式",
@@ -2510,7 +2510,7 @@ window.__ModuleLoader__.load({
 		const en = {
 			"group.ungrouped": "Ungrouped",
 			"session.new": "New Session",
-			"section.workspaces": "Cloud Workspace",
+			"section.workspaces": "EdgeOne Sandbox",
 			"section.sessions": "Sessions",
 			"viewOptions.label": "View options",
 			"groupBy.label": "Group by",

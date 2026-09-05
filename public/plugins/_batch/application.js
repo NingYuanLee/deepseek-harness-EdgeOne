@@ -45617,7 +45617,7 @@ window.__ModuleLoader__.load({
 			"hero.headline": "探索未至之境",
 			"hero.preview": "预览版",
 			"hero.chooseWorkspace": "选择工作区",
-			"hero.cloudWorkspace": "云端工作区",
+			"hero.cloudWorkspace": "EdgeOne 沙箱",
 			"session.hierarchy": "会话层级",
 			"todo.title": "任务",
 			"todo.progress.done": "{done} 已完成",
@@ -45767,7 +45767,7 @@ window.__ModuleLoader__.load({
 			"hero.headline": "Into the Unknown",
 			"hero.preview": "Preview",
 			"hero.chooseWorkspace": "Choose workspace",
-			"hero.cloudWorkspace": "Cloud Workspace",
+			"hero.cloudWorkspace": "EdgeOne Sandbox",
 			"session.hierarchy": "Session hierarchy",
 			"todo.title": "To-dos",
 			"todo.progress.done": "{done} completed",
@@ -46663,6 +46663,12 @@ window.__ModuleLoader__.load({
 				workspaces.phase,
 				pendingWorkspace
 			]);
+			(0, react.useEffect)(() => {
+				if (sessionId !== void 0 || workspaces.phase !== "ready") return;
+				const only = workspaces.items[0];
+				if (only === void 0) return;
+				selectWorkspace(only.workspaceId).catch(() => {});
+			}, [sessionId, workspaces.phase, workspaces.items, selectWorkspace]);
 			const parentAvailabilityPending = session?.subagent?.address.mode === "continuable" && session.subagent.parentAvailable === void 0;
 			const settling = sessionId !== void 0 && (shellPhase === "blank" && openState === "loading" && summaryBlank !== true || parentAvailabilityPending);
 			const hero = sessionId === void 0 || shellPhase === "blank" && (openState === "open" || summaryBlank === true);
@@ -46699,7 +46705,7 @@ window.__ModuleLoader__.load({
 					renderSlot("conversation.hero.agentPreset", {})
 				]
 			});
-			const inert = sessionId === void 0 || hero && chipTitle === void 0;
+			const inert = sessionId === void 0 && workspaces.items.length === 0;
 			const inputBar = renderSlot("conversation.composer.bar", {
 				variant: hero ? "hero" : "composer",
 				...inert ? {
@@ -80910,7 +80916,7 @@ window.__ModuleLoader__.load({
 		const zh = {
 			"group.ungrouped": "未分组",
 			"session.new": "新会话",
-			"section.workspaces": "云端工作区",
+			"section.workspaces": "EdgeOne 沙箱",
 			"section.sessions": "会话",
 			"viewOptions.label": "视图选项",
 			"groupBy.label": "分组方式",
@@ -80976,7 +80982,7 @@ window.__ModuleLoader__.load({
 		const en = {
 			"group.ungrouped": "Ungrouped",
 			"session.new": "New Session",
-			"section.workspaces": "Cloud Workspace",
+			"section.workspaces": "EdgeOne Sandbox",
 			"section.sessions": "Sessions",
 			"viewOptions.label": "View options",
 			"groupBy.label": "Group by",

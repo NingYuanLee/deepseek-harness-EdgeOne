@@ -38,6 +38,16 @@ export function dshHomeFor(conversationId: string): string {
   return join(tmpdir(), 'dsh-makers-web', safeSegment(conversationId))
 }
 
+function requestHost(context: any): string {
+  const headers = context?.request?.headers
+  if (!headers || typeof headers !== 'object') return ''
+  return String(headers.host || headers.Host || '')
+}
+
+function sandboxWorkspaceTitle(context: any): string {
+  return requestHost(context).endsWith('.edgeone.dev') ? 'EdgeOne Sandbox' : 'EdgeOne 沙箱'
+}
+
 function isMissingConversation(error: unknown): boolean {
   const code = error && typeof error === 'object' && 'code' in error
     ? String((error as { code?: unknown }).code || '')
@@ -504,6 +514,13 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
       console.warn('[dsh-web] workspace.create skipped:', error)
     }
     if (typeof workspaceId === 'string' && workspaceId) {
+      try {
+        await callRpc(port, cookie, 'workspace.rename', {
+          request: { workspaceId, title: sandboxWorkspaceTitle(context) },
+        })
+      } catch (error) {
+        console.warn('[dsh-web] workspace.rename skipped:', error)
+      }
       await callRpc(port, cookie, 'session.create', { request: { workspaceId } })
     } else {
       await callRpc(port, cookie, 'session.create', { request: { cwd: workspacePath } })
