@@ -46,7 +46,7 @@ test('sidecar defaults to official DeepSeek and reads the key from the environme
   assert.match(source, /id: llm-pi-ai/)
   assert.match(source, /providers: \{\}/)
   assert.match(source, /OFFICIAL_PROVIDER = 'deepseek-official'/)
-  assert.match(source, /DEFAULT_OFFICIAL_MODEL = 'deepseek-v4-flash'/)
+  assert.match(source, /DEFAULT_OFFICIAL_MODEL = 'deepseek-v4-flash-vision-exp'/)
   assert.match(source, /DEFAULT_OFFICIAL_BASE_URL = 'https:\/\/api\.deepseek\.com'/)
   assert.match(source, /id: agent-default-model/)
   assert.match(source, /provider: \$\{OFFICIAL_PROVIDER\}/)

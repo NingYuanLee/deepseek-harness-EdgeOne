@@ -160,7 +160,7 @@ async function freePort(): Promise<number> {
 
 const OFFICIAL_PROVIDER = 'deepseek-official'
 const MAKERS_GATEWAY_API_KEY_ENV = 'MAKERS_GATEWAY_API_KEY'
-const DEFAULT_OFFICIAL_MODEL = 'deepseek-v4-flash'
+const DEFAULT_OFFICIAL_MODEL = 'deepseek-v4-flash-vision-exp'
 const DEFAULT_OFFICIAL_BASE_URL = 'https://api.deepseek.com'
 
 function envString(context: any, key: string): string {
@@ -207,7 +207,10 @@ export async function ensureOfficialDefaultModelSettings(home: string, defaultMo
       : ''
     if (code !== 'ENOENT') throw error
   }
-  if (settingsProviderOf(yaml, 'agent-default-model') === OFFICIAL_PROVIDER) return
+  if (
+    settingsProviderOf(yaml, 'agent-default-model') === OFFICIAL_PROVIDER
+    && settingsFieldOf(yaml, 'agent-default-model', 'model') === defaultModel
+  ) return
   const section = officialDefaultModelSection(defaultModel)
   const next = yaml.trim()
     ? /^agent-default-model:/m.test(yaml)

@@ -11,6 +11,21 @@ window.__ModuleLoader__.load({
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		//#region lib/types/client/directory.js
 		/** One session's shared directory controller; disposed with the session scope. */
+		function officialVisionGroups(groups) {
+			const official = groups.find((group) => group.id === "deepseek-official");
+			const listed = (official?.models ?? []).find((model) => model.id === "deepseek-v4-flash-vision-exp");
+			const vision = listed ?? {
+				id: "deepseek-v4-flash-vision-exp",
+				name: "DeepSeek-V4-Flash-Vision",
+				description: "多模态",
+				...official?.models?.[0]?.reasoning ? { reasoning: official.models[0].reasoning } : {}
+			};
+			return [{
+				id: "deepseek-official",
+				name: official?.name ?? "DeepSeek",
+				models: [vision]
+			}];
+		}
 		var ModelDirectory = class {
 			sessions;
 			sessionId;
@@ -54,7 +69,7 @@ window.__ModuleLoader__.load({
 				const { result } = await this.sessions.models({ sessionId: this.sessionId });
 				if (this.disposed || generation !== this.generation) {
 					if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`);
-					return { ...result.value, groups: result.value.groups.filter((group) => group.id === "deepseek-official") };
+					return { ...result.value, groups: officialVisionGroups(result.value.groups) };
 				}
 				if (!result.ok) {
 					this.store.update((s) => {
@@ -64,7 +79,7 @@ window.__ModuleLoader__.load({
 					throw new Error(`session.models failed: ${result.error.code}: ${result.error.message}`);
 				}
 				const { current, routable, groups, failures } = result.value;
-				const officialGroups = groups.filter((group) => group.id === "deepseek-official");
+				const officialGroups = officialVisionGroups(groups);
 				this.store.update((s) => {
 					if (this.inflightSelect === 0) s.current = current;
 					s.routable = routable;
