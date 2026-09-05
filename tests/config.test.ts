@@ -4,6 +4,7 @@ import test from 'node:test'
 
 test('agent config packages the DSH Web sidecar and allows long runs', async () => {
   const config = JSON.parse(await readFile(new URL('../edgeone.json', import.meta.url), 'utf8'))
+  assert.match(String(config.installCommand), /registry\.npmmirror\.com/)
   assert.equal(config.agents.timeout, 300)
   assert.ok(config.agents.externalNodeModules.includes('@deepseek-ai/dsh'))
   assert.ok(config.agents.externalNodeModules.every((name: string) => !name.includes('linux-x64')))

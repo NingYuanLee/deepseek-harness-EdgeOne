@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm ci",
+  "installCommand": "npm ci --registry=https://registry.npmmirror.com",
   "buildCommand": "npm run build:makers",
   "outputDirectory": "dist",
   "nodeVersion": "24",
