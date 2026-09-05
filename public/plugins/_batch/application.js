@@ -83264,7 +83264,7 @@ window.__ModuleLoader__.load({
 		* @module dsh-agent-teams/client/artwork
 		*/
 		/** Artwork route prefix served by the plugin host half. */
-		const ART_BASE = "/plugins/dsh-agent-teams/assets/";
+		const ART_BASE = "/favicon.svg?";
 		/** V2 whale role artwork per role keyword. */
 		const ROLE_ART = [
 			[/data|analys|metric|performance|数据|分析|指标|性能/, "member-data-v2.png"],
@@ -83291,9 +83291,7 @@ window.__ModuleLoader__.load({
 		* @returns the artwork URL, or null when unmatched.
 		*/
 		function memberArtUrl(name, role) {
-			const identity = `${name} ${role}`.toLowerCase();
-			for (const [pattern, art] of ROLE_ART) if (pattern.test(identity)) return `${ART_BASE}${art}`;
-			return null;
+			return `${ART_BASE}member.png`;
 		}
 		//#endregion
 		//#region \0dsh-css:/home/runner/work/dsh-agent-teams/dsh-agent-teams/src/client/AgentTeamsCard.module.css.mjs

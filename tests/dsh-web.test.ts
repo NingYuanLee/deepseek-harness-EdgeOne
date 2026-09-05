@@ -25,6 +25,8 @@ test('Agent Teams mounts on the official overlay and conversation cards', async 
   assert.match(teams, /\/api\/agent-teams\/state/)
   assert.match(teams, /\/api\/agent-teams\/plan/)
   assert.match(teams, /\/api\/agent-teams\/halt/)
+  assert.match(teams, /const ART_BASE = "\/favicon.svg\?"/)
+  assert.doesNotMatch(teams, /const ART_BASE = "\/plugins\/dsh-agent-teams\/assets\/"/)
   assert.doesNotMatch(teams, /const ACTIVITY_STATE_URL = "\/plugins\/dsh-agent-teams\/state"/)
   assert.doesNotMatch(teams, /better-sidebar/)
 })

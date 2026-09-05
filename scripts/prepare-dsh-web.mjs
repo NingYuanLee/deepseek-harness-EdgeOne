@@ -1018,6 +1018,24 @@ function patchAgentTeamsBundle(source) {
   let next = source
   next = mustReplace(
     next,
+    'const ART_BASE = "/plugins/dsh-agent-teams/assets/";',
+    'const ART_BASE = "/favicon.svg?";',
+    'agent-teams whale artwork',
+  )
+  next = mustReplace(
+    next,
+    `		function memberArtUrl(name, role) {
+			const identity = \`\${name} \${role}\`.toLowerCase();
+			for (const [pattern, art] of ROLE_ART) if (pattern.test(identity)) return \`\${ART_BASE}\${art}\`;
+			return null;
+		}`,
+    `		function memberArtUrl(name, role) {
+			return \`\${ART_BASE}member.png\`;
+		}`,
+    'agent-teams whale fallback',
+  )
+  next = mustReplace(
+    next,
     'const ACTIVITY_STATE_URL = "/plugins/dsh-agent-teams/state";',
     'const ACTIVITY_STATE_URL = "/api/agent-teams/state";',
     'agent-teams state url',
