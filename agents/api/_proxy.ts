@@ -1,6 +1,16 @@
 import { mkdir } from 'node:fs/promises'
 import WebSocket from 'ws'
 import { getDshWebSidecar, snapshotDshSettingsYaml, type DshWebSidecar } from '../_dsh-web-sidecar.ts'
+import {
+  addArchivedSessionId,
+  archivedFollowItem,
+  cachedArchivedSessionIds,
+  isWorkspaceFollowEndpoint,
+  loadArchivedSessionIds,
+  mergeArchivedIntoMuxText,
+  sessionIdFromArchiveBody,
+  subscribeArchivedSessions,
+} from '../_session-archive.ts'
 import { deleteSandboxBrowserPath, listSandboxBrowserFiles, matchSandboxFileReferences, readSandboxBrowserFile, sidecarWorkspaceRoot, uploadSandboxBrowserFile } from '../_workspace.ts'
 
 function requestPath(context: any): string {
@@ -99,8 +109,11 @@ function remoteMuxStream(context: any): Response {
   }
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let unsubscribeArchive: (() => void) | undefined
       const stopKeepalive = startSseKeepalive(controller, encoder)
       const streamError = (error: unknown): void => {
+        unsubscribeArchive?.()
+        unsubscribeArchive = undefined
         stopKeepalive()
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -119,6 +132,9 @@ function remoteMuxStream(context: any): Response {
       }
       try {
         const sidecar = await getDshWebSidecar(context)
+        const archiveConversationId = String(context.conversation_id || sidecar.conversationId || '')
+        const followWorkspace = isWorkspaceFollowEndpoint(endpoint)
+        if (followWorkspace) await loadArchivedSessionIds(archiveConversationId)
         const streamId = crypto.randomUUID()
         socket = new WebSocket(`ws://127.0.0.1:${String(sidecar.port)}/api/remote.mux`, {
           headers: {
@@ -127,12 +143,24 @@ function remoteMuxStream(context: any): Response {
           },
         })
         const close = (): void => {
+          unsubscribeArchive?.()
+          unsubscribeArchive = undefined
           if (socket?.readyState === WebSocket.OPEN) {
             try { socket.send(JSON.stringify({ type: 'cancel', streamId })) } catch { /* closing */ }
           }
           if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
         }
         signal?.addEventListener('abort', close, { once: true })
+        if (followWorkspace) {
+          unsubscribeArchive = subscribeArchivedSessions((conversationId, ids) => {
+            if (conversationId !== archiveConversationId) return
+            try {
+              controller.enqueue(encoder.encode(`data: ${archivedFollowItem(streamId, ids)}\n\n`))
+            } catch {
+              // The browser already disconnected.
+            }
+          })
+        }
         socket.once('open', () => {
           try {
             socket?.send(JSON.stringify({ type: 'open', streamId, endpoint, payload }))
@@ -142,7 +170,9 @@ function remoteMuxStream(context: any): Response {
         })
         socket.on('message', data => {
           try {
-            const text = data.toString()
+            const text = followWorkspace
+              ? mergeArchivedIntoMuxText(data.toString(), cachedArchivedSessionIds(archiveConversationId))
+              : data.toString()
             const frame = JSON.parse(text) as { streamId?: string; type?: string }
             if (frame.streamId !== undefined && frame.streamId !== streamId) return
             controller.enqueue(encoder.encode(`data: ${text}\n\n`))
@@ -153,6 +183,8 @@ function remoteMuxStream(context: any): Response {
         })
         socket.once('error', streamError)
         socket.once('close', () => {
+          unsubscribeArchive?.()
+          unsubscribeArchive = undefined
           stopKeepalive()
           signal?.removeEventListener('abort', close)
           try { controller.close() } catch { /* already cancelled */ }
@@ -532,6 +564,38 @@ function rewriteWorkspaceCreatePath(body: unknown, workspacePath: string): unkno
   }
 }
 
+function isWorkspaceArchivePath(path: string): boolean {
+  return path === '/api/workspace/archiveSession' || path === '/api/workspace.archiveSession'
+}
+
+async function archiveWorkspaceSession(context: any): Promise<Response> {
+  const conversationId = String(context.conversation_id || '').trim()
+  const rpcId = asRecord(context.request?.body)?.rpcId
+  const sessionId = sessionIdFromArchiveBody(context.request?.body)
+  if (!conversationId) {
+    return Response.json({ error: 'makers-conversation-id is required to archive a session.' }, { status: 400 })
+  }
+  if (!sessionId) {
+    return Response.json({
+      type: 'server-response',
+      rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
+      result: {
+        ok: false,
+        error: { code: 'session/not-found', message: 'archiveSession requires sessionId', details: {} },
+      },
+    })
+  }
+  const archivedSessionIds = await addArchivedSessionId(conversationId, sessionId)
+  return Response.json({
+    type: 'server-response',
+    rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
+    result: {
+      ok: true,
+      value: { archivedSessionIds },
+    },
+  })
+}
+
 function adoptedWorkspaceResponse(sidecar: DshWebSidecar, rpcId: unknown): Response | undefined {
   const workspace = sidecar.workspace
   if (!workspace) return undefined
@@ -684,6 +748,7 @@ async function proxy(context: any): Promise<Response> {
   if (path === '/api/fileReferences/list' || path === '/api/fileReferences.list') {
     return listSandboxFileReferences(context)
   }
+  if (isWorkspaceArchivePath(path)) return archiveWorkspaceSession(context)
   if (
     path === '/api/agent-teams/state'
     || path === '/api/agent-teams/plan'

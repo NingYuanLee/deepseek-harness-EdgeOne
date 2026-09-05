@@ -123,6 +123,8 @@ test('API proxy returns the sandbox workspace instead of a native directory pick
   assert.match(source, /isWorkspaceCreatePath/)
   assert.match(source, /\/api\/workspace\/create/)
   assert.match(source, /adoptedWorkspaceResponse/)
+  assert.match(source, /archiveWorkspaceSession/)
+  assert.match(source, /workspace\/archiveSession/)
   assert.match(source, /listSandboxFileReferences/)
   assert.match(source, /fileReferences\/list/)
   assert.match(pick, /mkdir/)
