@@ -96,7 +96,7 @@ test('sidecar defaults to official DeepSeek and reads the key from the environme
   assert.match(source, /Inspect the EdgeOne Makers sandbox/)
   assert.match(source, /makers-mcp-permission/)
   assert.match(source, /Every Makers tool stays available/)
-  assert.match(source, /Commands and preview ask for confirmation/)
+  assert.match(source, /Preview asks for confirmation/)
   assert.match(source, /workspace\.create/)
   assert.match(source, /sidecar-runtime\.json/)
   assert.match(source, /sidecar\.lock/)

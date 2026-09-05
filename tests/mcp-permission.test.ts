@@ -38,15 +38,18 @@ test('every Makers tool stays visible; permission only decides allow vs ask', ()
   assert.equal(makersToolGate('read-only', 'publish_preview'), 'ask')
 })
 
-test('workspace-write auto-allows writes and asks for commands and preview', () => {
+test('workspace-write auto-allows writes and sandbox commands, and asks for preview', () => {
   assert.equal(makersToolAllowed('workspace-write', 'workspace_write_file'), true)
-  assert.equal(makersToolGate('workspace-write', 'workspace_run_command'), 'ask')
+  assert.equal(makersToolGate('workspace-write', 'workspace_run_command'), 'allow')
   assert.equal(makersToolGate('workspace-write', 'publish_preview'), 'ask')
   assert.deepEqual([...makersAutoAllowTools('workspace-write')], [
     'makers_context_probe',
     'workspace_list_files',
     'workspace_read_file',
     'workspace_write_file',
+    'workspace_run_command',
+    'sandbox_probe',
+    'sandbox_wait',
   ])
 })
 
@@ -59,6 +62,7 @@ test('full access auto-allows commands and preview without asking', () => {
 
 test('ask copy tells the user which mode the call needs', () => {
   assert.match(makersAskReason('read-only', 'workspace_write_file'), /Workspace Write/)
+  assert.match(makersAskReason('read-only', 'workspace_run_command'), /Workspace Write/)
   assert.match(makersAskReason('workspace-write', 'publish_preview'), /Full access/)
   assert.equal(makersRawToolName('mcp__edgeone__workspace_write_file'), 'workspace_write_file')
   assert.equal(makersRawToolName('bash'), null)

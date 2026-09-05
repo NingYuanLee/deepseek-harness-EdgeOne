@@ -728,13 +728,13 @@ function patchConversationBundle(source) {
   next = mustReplace(
     next,
     '			"access.confirm.description": "启用完全权限后，智能体将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任当前任务时使用。",',
-    '			"access.confirm.description": "启用完全权限后，智能体可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任当前任务时使用。",\n			"access.read-only.detail": "只能查看 EdgeOne Makers 沙箱：列出和读取文件。写入、运行命令或发布预览时会询问你确认。",\n			"access.workspace-write.detail": "可在 EdgeOne Makers 沙箱中读写文件。运行命令和发布预览时会询问你确认。",\n			"access.danger-full-access.detail": "开放全部 Makers 沙箱能力：文件、命令和预览，不再弹出确认。仍然无法访问本机。",',
+    '			"access.confirm.description": "启用完全权限后，智能体可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任当前任务时使用。",\n			"access.read-only.detail": "只能查看 EdgeOne Makers 沙箱：列出和读取文件。写入、运行命令或发布预览时会询问你确认。",\n			"access.workspace-write.detail": "可在 EdgeOne Makers 沙箱中读写文件并运行命令。发布预览时会询问你确认。",\n			"access.danger-full-access.detail": "开放全部 Makers 沙箱能力：文件、命令和预览，不再弹出确认。仍然无法访问本机。",',
     'conversation zh permission copy',
   )
   next = mustReplace(
     next,
     '			"access.confirm.description": "Full access reduces confirmation steps and lets the agent perform more actions directly, including sensitive operations, file changes, or external commands. Only use it when you trust the current task.",',
-    '			"access.confirm.description": "Full access lets the agent run commands and publish previews in the EdgeOne Makers sandbox without extra confirmation. The local machine is still never accessible. Only use it when you trust the current task.",\n			"access.read-only.detail": "Inspect the EdgeOne Makers sandbox: list and read files. Writes, commands, and preview will ask you to confirm.",\n			"access.workspace-write.detail": "Read and write files in the EdgeOne Makers sandbox. Commands and preview will ask you to confirm.",\n			"access.danger-full-access.detail": "Full Makers sandbox access: files, commands, and preview, without extra confirmation. The local machine is still never accessible.",',
+    '			"access.confirm.description": "Full access lets the agent run commands and publish previews in the EdgeOne Makers sandbox without extra confirmation. The local machine is still never accessible. Only use it when you trust the current task.",\n			"access.read-only.detail": "Inspect the EdgeOne Makers sandbox: list and read files. Writes, commands, and preview will ask you to confirm.",\n			"access.workspace-write.detail": "Read, write, and run commands in the EdgeOne Makers sandbox. Preview will ask you to confirm.",\n			"access.danger-full-access.detail": "Full Makers sandbox access: files, commands, and preview, without extra confirmation. The local machine is still never accessible.",',
     'conversation en permission copy',
   )
   next = mustReplace(

@@ -24,6 +24,9 @@ const AUTO_ALLOW = Object.freeze({
     'workspace_list_files',
     'workspace_read_file',
     'workspace_write_file',
+    'workspace_run_command',
+    'sandbox_probe',
+    'sandbox_wait',
   ]),
   'danger-full-access': ALL_MAKERS_TOOLS,
 })
@@ -41,7 +44,7 @@ export function makersToolAllowed(mode, tool) {
 }
 
 export function makersRequiredMode(tool) {
-  return tool === 'workspace_write_file' ? 'workspace-write' : 'danger-full-access'
+  return tool === 'publish_preview' ? 'danger-full-access' : 'workspace-write'
 }
 
 export function makersRequiredModeLabel(tool) {

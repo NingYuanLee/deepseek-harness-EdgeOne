@@ -77,7 +77,7 @@ test('permission modes keep the composer picker and use Makers sandbox copy', as
   assert.match(conversation, /command\(`\/permission \$\{id\}`\)/)
   assert.match(conversation, /"access.read-only.detail": "Inspect the EdgeOne Makers sandbox: list and read files. Writes, commands, and preview will ask you to confirm/)
   assert.match(conversation, /"access.read-only.detail": "只能查看 EdgeOne Makers 沙箱：列出和读取文件。写入、运行命令或发布预览时会询问你确认/)
-  assert.match(conversation, /"access.workspace-write.detail": "Read and write files in the EdgeOne Makers sandbox. Commands and preview will ask you to confirm/)
+  assert.match(conversation, /"access.workspace-write.detail": "Read, write, and run commands in the EdgeOne Makers sandbox. Preview will ask you to confirm/)
   assert.match(conversation, /access\.\$\{currentValue\}\.detail/)
   assert.match(permission, /slots\.inject\("settings\.general\.item"/)
   assert.match(permission, /available: \(session\) => selectOf\(sessionFor\(session\)\) !== void 0/)

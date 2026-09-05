@@ -144,7 +144,7 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
   })
 
   register('workspace_run_command', {
-    description: 'Run a shell command in the coding workspace. Use this for dependency installation, builds, tests, and diagnostics. Below Full access, the user is asked to confirm.',
+    description: 'Run a shell command in the coding workspace. Use this for dependency installation, builds, tests, and diagnostics. Workspace Write auto-allows this. Read Only asks the user to confirm.',
     inputSchema: {
       command: z.string().min(1),
       timeout: z.number().int().min(1).max(300).optional(),
