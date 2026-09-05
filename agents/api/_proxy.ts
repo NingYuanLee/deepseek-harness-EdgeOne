@@ -274,6 +274,36 @@ function rejectLockedModelConfig(rpcId: unknown, reason: string): Response {
   })
 }
 
+async function proxyAgentTeams(context: any, path: string): Promise<Response> {
+  const suffix = path.slice('/api/agent-teams/'.length)
+  if (!['state', 'plan', 'halt'].includes(suffix)) {
+    return Response.json({ error: 'unknown agent-teams route' }, { status: 404 })
+  }
+  const sidecar = await getDshWebSidecar(context)
+  const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : path, 'http://local')
+  const query = incomingUrl.search || requestSearch(context, incomingUrl)
+  const method = String(context.request?.method || 'GET').toUpperCase()
+  const body = method === 'GET' || method === 'HEAD'
+    ? undefined
+    : JSON.stringify(context.request?.body ?? {})
+  const upstream = await fetch(`http://127.0.0.1:${String(sidecar.port)}/plugins/dsh-agent-teams/${suffix}${query}`, {
+    method,
+    headers: {
+      accept: context.request?.headers?.accept || '*/*',
+      origin: `http://127.0.0.1:${String(sidecar.port)}`,
+      cookie: sidecar.cookie,
+      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+    },
+    ...(body === undefined ? {} : { body }),
+    signal: context.request?.signal,
+  })
+  const headers = new Headers(upstream.headers)
+  headers.delete('content-encoding')
+  headers.delete('content-length')
+  headers.delete('transfer-encoding')
+  return new Response(upstream.body, { status: upstream.status, headers })
+}
+
 async function pickSandboxDirectory(context: any): Promise<Response> {
   const conversationId = String(context.conversation_id || '').trim()
   if (!conversationId) {
@@ -413,6 +443,13 @@ async function proxy(context: any): Promise<Response> {
   if (path === '/api/events.mux') return eventStream(context, 'mux')
   if (path === '/api/events.host') return eventStream(context, 'host')
   if (path === '/api/directoryPicker/pick') return pickSandboxDirectory(context)
+  if (
+    path === '/api/agent-teams/state'
+    || path === '/api/agent-teams/plan'
+    || path === '/api/agent-teams/halt'
+  ) {
+    return proxyAgentTeams(context, path)
+  }
 
   const incomingBody = context.request?.body
   const lockedPreset = requestedLockedPreset(incomingBody)

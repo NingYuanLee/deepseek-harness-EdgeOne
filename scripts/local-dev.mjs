@@ -219,6 +219,8 @@ const server = createServer((req, res) => {
       url.pathname.startsWith('/api')
       || url.pathname === '/stop'
       || url.pathname === '/plugins/dsh-agent-teams/state'
+      || url.pathname === '/plugins/dsh-agent-teams/plan'
+      || url.pathname === '/plugins/dsh-agent-teams/halt'
     ) {
       const body = req.method === 'GET' || req.method === 'HEAD' ? {} : await readBody(req)
       const context = makersContext(req, body, env)

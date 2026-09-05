@@ -135,6 +135,9 @@ test('API proxy refuses model credential writes so keys stay in the environment'
   assert.match(source, /cookie: sidecar\.cookie/)
   assert.match(source, /\/api\/sidebar\.proxy/)
   assert.match(source, /sidebarUpstreamPath/)
+  assert.match(source, /\/api\/agent-teams\/state/)
+  assert.match(source, /proxyAgentTeams/)
+  assert.match(source, /\/plugins\/dsh-agent-teams\//)
   assert.match(source, /headers\.delete\('content-encoding'\)/)
 })
 

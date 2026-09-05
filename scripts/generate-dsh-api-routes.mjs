@@ -22,6 +22,7 @@ const methods = [
   'commands/list', 'commands/execute',
   'goals/clear', 'goals/complete', 'goals/create', 'goals/edit', 'goals/pause', 'goals/resume',
   'pluginInventory/list',
+  'agent-teams/state', 'agent-teams/plan', 'agent-teams/halt',
   'sidebar.proxy',
   'messageFeedback/delete', 'messageFeedback/list', 'messageFeedback/put',
 ]

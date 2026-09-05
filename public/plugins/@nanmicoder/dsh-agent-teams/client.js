@@ -288,8 +288,8 @@ window.__ModuleLoader__.load({
 		*/
 		const ACTIVITY_PROBE_MS = 5e3;
 		/** Host route serving live and archived team snapshots. */
-		const ACTIVITY_STATE_URL = "/plugins/dsh-agent-teams/state";
-		const ACTIVITY_HALT_URL = "/plugins/dsh-agent-teams/halt";
+		const ACTIVITY_STATE_URL = "/api/agent-teams/state";
+		const ACTIVITY_HALT_URL = "/api/agent-teams/halt";
 		/**
 		* Start the single polling loop for the current session's requested targets.
 		*
@@ -711,7 +711,7 @@ window.__ModuleLoader__.load({
 		* on the host and returns through the ordinary activity polling snapshot.
 		* @module dsh-agent-teams/client/staging-plan
 		*/
-		const PLAN_URL = "/plugins/dsh-agent-teams/plan";
+		const PLAN_URL = "/api/agent-teams/plan";
 		function useDismissSuccess(feedback, setFeedback) {
 			(0, react.useEffect)(() => {
 				if (feedback?.tone !== "success") return;

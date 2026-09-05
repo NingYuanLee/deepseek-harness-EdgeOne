@@ -991,6 +991,29 @@ function patchWorkspaceBundle(source) {
   return next
 }
 
+function patchAgentTeamsBundle(source) {
+  let next = source
+  next = mustReplace(
+    next,
+    'const ACTIVITY_STATE_URL = "/plugins/dsh-agent-teams/state";',
+    'const ACTIVITY_STATE_URL = "/api/agent-teams/state";',
+    'agent-teams state url',
+  )
+  next = mustReplace(
+    next,
+    'const ACTIVITY_HALT_URL = "/plugins/dsh-agent-teams/halt";',
+    'const ACTIVITY_HALT_URL = "/api/agent-teams/halt";',
+    'agent-teams halt url',
+  )
+  next = mustReplace(
+    next,
+    'const PLAN_URL = "/plugins/dsh-agent-teams/plan";',
+    'const PLAN_URL = "/api/agent-teams/plan";',
+    'agent-teams plan url',
+  )
+  return next
+}
+
 function patchLocaleBundle(source) {
   return mustReplace(
     source,
@@ -1057,6 +1080,7 @@ function patchClientBundle(name, source) {
   if (name === '@deepseek-ai/dsh-client-ui-model-selection') return patchModelSelectionBundle(source)
   if (name === '@deepseek-ai/dsh-session-log-export') return patchSessionLogExportBundle(source)
   if (name === '@deepseek-ai/dsh-client-locale') return patchLocaleBundle(source)
+  if (name === '@nanmicoder/dsh-agent-teams') return patchAgentTeamsBundle(source)
   return source
 }
 

@@ -22,6 +22,10 @@ test('Agent Teams mounts on the official overlay and conversation cards', async 
   assert.match(teams, /id: "agent-teams-activity"/)
   assert.match(teams, /ctx\.slots\.inject\("shell\.overlay"/)
   assert.match(teams, /conversation\.chat\.node/)
+  assert.match(teams, /\/api\/agent-teams\/state/)
+  assert.match(teams, /\/api\/agent-teams\/plan/)
+  assert.match(teams, /\/api\/agent-teams\/halt/)
+  assert.doesNotMatch(teams, /const ACTIVITY_STATE_URL = "\/plugins\/dsh-agent-teams\/state"/)
   assert.doesNotMatch(teams, /better-sidebar/)
 })
 
@@ -203,4 +207,7 @@ test('generated API routes expose static files the Makers scanner accepts', asyn
   assert.match(remoteRoute, /\.\.\/_proxy\.ts/)
   assert.match(pickerRoute, /export async function onRequest/)
   assert.match(generator, /directoryPicker\/pick/)
+  assert.match(generator, /agent-teams\/state/)
+  assert.match(generator, /agent-teams\/plan/)
+  assert.match(generator, /agent-teams\/halt/)
 })
