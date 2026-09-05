@@ -45618,6 +45618,7 @@ window.__ModuleLoader__.load({
 			"hero.preview": "预览版",
 			"hero.chooseWorkspace": "选择工作区",
 			"hero.cloudWorkspace": "EdgeOne 沙箱",
+			"placeholder.workspace": "正在准备沙箱…",
 			"session.hierarchy": "会话层级",
 			"todo.title": "任务",
 			"todo.progress.done": "{done} 已完成",
@@ -45768,6 +45769,7 @@ window.__ModuleLoader__.load({
 			"hero.preview": "Preview",
 			"hero.chooseWorkspace": "Choose workspace",
 			"hero.cloudWorkspace": "EdgeOne Sandbox",
+			"placeholder.workspace": "Preparing the sandbox…",
 			"session.hierarchy": "Session hierarchy",
 			"todo.title": "To-dos",
 			"todo.progress.done": "{done} completed",
@@ -46712,9 +46714,7 @@ window.__ModuleLoader__.load({
 					disabled: true,
 					placeholder: t("placeholder.workspace"),
 					workspacePickerOpen: pickerOpen,
-					onRequestWorkspace: () => {
-						setPickerOpen(true);
-					}
+					onRequestWorkspace: () => {}
 				} : !inert && composerBlock !== void 0 ? {
 					blocked: composerBlock,
 					placeholder: composerBlock.reason
@@ -78582,22 +78582,37 @@ window.__ModuleLoader__.load({
 					if (target === void 0) {
 						if (workspace.items.length === 0) {
 							initial = "adopting";
-							this.pickDirectory().then((path) => {
+							const adopt = (path) => {
 								if (disposed || !path) throw new Error("sandbox workspace path unavailable");
+								const latest = this.workspaces.list.getSnapshot().items[0];
+								if (latest) return { ok: true, value: { workspace: latest } };
 								return this.workspaces.create({ path });
-							}).then((result) => {
-								if (disposed) return;
-								if (!result.ok) throw new Error(result.error.message);
-								return this.connectWorkspace(result.value.workspace.workspaceId);
-							}).then((sessionId) => {
+							};
+							const finish = (sessionId) => {
 								if (disposed || sessionId === void 0) return;
 								if (this.sessions.list.getSnapshot().current === void 0) this.sessions.open(sessionId);
 								initial = "done";
-							}, (reason) => {
+							};
+							const failed = (reason) => {
 								if (disposed) return;
-								initial = "waiting";
 								console.warn("sandbox workspace adopt failed:", reason);
-							});
+								setTimeout(() => {
+									if (!disposed && initial === "adopting") initial = "waiting";
+								}, 1500);
+							};
+							setTimeout(() => {
+								if (disposed) return;
+								const ready = this.workspaces.list.getSnapshot().items[0];
+								if (ready) {
+									this.connectWorkspace(ready.workspaceId).then(finish, failed);
+									return;
+								}
+								this.pickDirectory().then(adopt).then((result) => {
+									if (disposed) return;
+									if (!result.ok) throw new Error(result.error.message);
+									return this.connectWorkspace(result.value.workspace.workspaceId);
+								}).then(finish, failed);
+							}, 800);
 							return;
 						}
 						initial = "done";

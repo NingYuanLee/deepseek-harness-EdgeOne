@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { cp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { open, cp, mkdir, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -21,11 +21,30 @@ export interface DshWebSidecar {
   mcp: LocalMcpBridge
   lastUsedAt: number
   context: any
+  owner: boolean
+  workspace?: SidecarWorkspace
   close(): Promise<void>
+}
+
+interface SidecarWorkspace {
+  workspaceId: string
+  path: string
+  title: string
+}
+
+interface SidecarRuntime {
+  port: number
+  cookie: string
+  pid: number
+  workspaceId?: string
+  workspacePath: string
+  workspaceTitle: string
 }
 
 const sidecars = new Map<string, Promise<DshWebSidecar>>()
 const SIDECAR_IDLE_MS = 25 * 60_000
+const SIDECAR_RUNTIME_FILE = 'sidecar-runtime.json'
+const SIDECAR_LOCK_FILE = 'sidecar.lock'
 const DSH_SETTINGS_FILE = 'settings.yaml'
 const DSH_SETTINGS_METADATA_KEY = 'dshSettingsYaml'
 const DSH_SETTINGS_MAX_BYTES = 256 * 1024
@@ -429,18 +448,116 @@ function extractWorkspaceId(value: unknown): string | undefined {
   return typeof id === 'string' && id ? id : undefined
 }
 
+function runtimePath(home: string): string {
+  return join(home, SIDECAR_RUNTIME_FILE)
+}
+
+function lockPath(home: string): string {
+  return join(home, SIDECAR_LOCK_FILE)
+}
+
+function pidAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function sidecarHealthy(port: number, cookie: string): Promise<boolean> {
+  try {
+    const response = await fetch(`http://127.0.0.1:${String(port)}/`, {
+      headers: sidecarHeaders(port, cookie),
+      redirect: 'manual',
+      signal: AbortSignal.timeout(2_000),
+    })
+    return response.status < 500
+  } catch {
+    return false
+  }
+}
+
+async function readSidecarRuntime(home: string): Promise<SidecarRuntime | undefined> {
+  try {
+    const parsed = JSON.parse(await readFile(runtimePath(home), 'utf8')) as SidecarRuntime
+    if (!Number.isInteger(parsed.port) || typeof parsed.cookie !== 'string' || !parsed.cookie) return undefined
+    return parsed
+  } catch {
+    return undefined
+  }
+}
+
+async function writeSidecarRuntime(home: string, runtime: SidecarRuntime): Promise<void> {
+  await writeFile(runtimePath(home), `${JSON.stringify(runtime, null, 2)}\n`, 'utf8')
+}
+
+async function clearSidecarRuntime(home: string): Promise<void> {
+  await rm(runtimePath(home), { force: true })
+}
+
+function workspaceFromRuntime(runtime: SidecarRuntime): SidecarWorkspace | undefined {
+  if (!runtime.workspaceId) return undefined
+  return {
+    workspaceId: runtime.workspaceId,
+    path: runtime.workspacePath,
+    title: runtime.workspaceTitle,
+  }
+}
+
+function attachedChild(): ChildProcess {
+  return {
+    exitCode: null,
+    killed: false,
+    kill() {},
+    once() { return this },
+  } as unknown as ChildProcess
+}
+
+async function attachExistingSidecar(
+  context: any,
+  conversationId: string,
+  home: string,
+): Promise<DshWebSidecar | undefined> {
+  const runtime = await readSidecarRuntime(home)
+  if (!runtime || !pidAlive(runtime.pid)) return undefined
+  if (!await sidecarHealthy(runtime.port, runtime.cookie)) return undefined
+  const workspace = workspaceFromRuntime(runtime)
+  const sidecar: DshWebSidecar = {
+    conversationId,
+    home,
+    port: runtime.port,
+    cookie: runtime.cookie,
+    child: attachedChild(),
+    gateway: { close: async () => {} } as LocalGatewayProxy,
+    mcp: { close: async () => {} } as LocalMcpBridge,
+    lastUsedAt: Date.now(),
+    context,
+    owner: false,
+    workspace,
+    async close() {},
+  }
+  return sidecar
+}
+
+async function sidecarUsable(sidecar: DshWebSidecar): Promise<boolean> {
+  if (sidecar.owner && sidecar.child.exitCode !== null) return false
+  if (sidecar.owner) return true
+  return sidecarHealthy(sidecar.port, sidecar.cookie)
+}
+
 async function adoptSandboxWorkspace(
   port: number,
   cookie: string,
   workspacePath: string,
   title: string,
-): Promise<void> {
+): Promise<SidecarWorkspace | undefined> {
   let workspaceId: string | undefined
   for (let attempt = 0; attempt < 2 && !workspaceId; attempt += 1) {
     try {
-      workspaceId = extractWorkspaceId(
-        await callRpc(port, cookie, 'workspace.create', { request: { path: workspacePath } }),
-      )
+      const created = await callRpc(port, cookie, 'workspace.create', { request: { path: workspacePath } })
+      workspaceId = extractWorkspaceId(created)
     } catch (error) {
       console.warn('[dsh-web] workspace.create skipped:', error)
       if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 500))
@@ -454,12 +571,14 @@ async function adoptSandboxWorkspace(
     }
     try {
       await callRpc(port, cookie, 'session.create', { request: { workspaceId } })
-      return
+      return { workspaceId, path: workspacePath, title }
     } catch (error) {
       console.warn('[dsh-web] session.create with workspaceId skipped:', error)
     }
+    return { workspaceId, path: workspacePath, title }
   }
   await callRpc(port, cookie, 'session.create', { request: { cwd: workspacePath } })
+  return undefined
 }
 
 async function waitForReady(child: ChildProcess, port: number): Promise<string> {
@@ -538,13 +657,25 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let cookie = ''
+  let workspace: SidecarWorkspace | undefined
+  const workspacePath = join(home, 'workspace')
+  const workspaceTitle = sandboxWorkspaceTitle(context)
   try {
     cookie = await waitForReady(child, port)
-    const workspacePath = join(home, 'workspace')
     await mkdir(workspacePath, { recursive: true })
     await hydrateSidecarWorkspace(context, conversationId, workspacePath)
-    await adoptSandboxWorkspace(port, cookie, workspacePath, sandboxWorkspaceTitle(context))
+    workspace = await adoptSandboxWorkspace(port, cookie, workspacePath, workspaceTitle)
+    await writeSidecarRuntime(home, {
+      port,
+      cookie,
+      pid: child.pid || 0,
+      workspaceId: workspace?.workspaceId,
+      workspacePath,
+      workspaceTitle,
+    })
   } catch (error) {
+    child.kill('SIGTERM')
+    await clearSidecarRuntime(home)
     await Promise.allSettled([gateway.close(), mcp.close()])
     throw error
   }
@@ -559,8 +690,11 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     mcp,
     lastUsedAt: Date.now(),
     context,
+    owner: true,
+    workspace,
     async close() {
       await snapshotDshSettingsYaml(sidecar.context, conversationId, home)
+      await clearSidecarRuntime(home)
       child.kill('SIGTERM')
       await Promise.race([
         new Promise<void>(resolve => child.once('exit', () => resolve())),
@@ -570,10 +704,49 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     },
   }
   child.once('exit', () => {
+    void clearSidecarRuntime(home)
     const current = sidecars.get(conversationId)
     if (current) void current.then(value => { if (value === sidecar) sidecars.delete(conversationId) })
   })
   return sidecar
+}
+
+async function clearStaleLock(home: string): Promise<void> {
+  try {
+    const info = await stat(lockPath(home))
+    if (Date.now() - info.mtimeMs > 120_000) await rm(lockPath(home), { force: true })
+  } catch {
+    // No lock, or it disappeared while we inspected it.
+  }
+}
+
+async function acquireSidecar(context: any, conversationId: string): Promise<DshWebSidecar> {
+  const home = dshHomeFor(conversationId)
+  await mkdir(home, { recursive: true })
+  const deadline = Date.now() + 90_000
+  while (Date.now() < deadline) {
+    const attached = await attachExistingSidecar(context, conversationId, home)
+    if (attached) return attached
+    await clearStaleLock(home)
+    try {
+      const handle = await open(lockPath(home), 'wx')
+      try {
+        const raced = await attachExistingSidecar(context, conversationId, home)
+        if (raced) return raced
+        return await startSidecar(context, conversationId)
+      } finally {
+        await handle.close().catch(() => {})
+        await rm(lockPath(home), { force: true })
+      }
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error
+        ? String((error as { code?: unknown }).code || '')
+        : ''
+      if (code !== 'EEXIST') throw error
+      await new Promise(resolve => setTimeout(resolve, 250))
+    }
+  }
+  throw new Error('DSH Web sidecar did not become ready: sidecar.lock timeout')
 }
 
 function sweepIdleSidecars(): void {
@@ -592,11 +765,22 @@ export async function getDshWebSidecar(context: any): Promise<DshWebSidecar> {
   if (!conversationId) throw new Error('makers-conversation-id is required for DSH Web.')
   sweepIdleSidecars()
   let pending = sidecars.get(conversationId)
-  if (!pending) {
-    pending = startSidecar(context, conversationId)
-    sidecars.set(conversationId, pending)
-    void pending.catch(() => { if (sidecars.get(conversationId) === pending) sidecars.delete(conversationId) })
+  if (pending) {
+    try {
+      const sidecar = await pending
+      if (await sidecarUsable(sidecar)) {
+        sidecar.lastUsedAt = Date.now()
+        sidecar.context = context
+        return sidecar
+      }
+    } catch {
+      // The cached start failed; fall through and acquire a new sidecar.
+    }
+    if (sidecars.get(conversationId) === pending) sidecars.delete(conversationId)
   }
+  pending = acquireSidecar(context, conversationId)
+  sidecars.set(conversationId, pending)
+  void pending.catch(() => { if (sidecars.get(conversationId) === pending) sidecars.delete(conversationId) })
   const sidecar = await pending
   sidecar.lastUsedAt = Date.now()
   sidecar.context = context

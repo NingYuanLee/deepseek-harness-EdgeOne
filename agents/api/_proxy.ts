@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises'
 import WebSocket from 'ws'
 import { getDshWebSidecar, snapshotDshSettingsYaml, type DshWebSidecar } from '../_dsh-web-sidecar.ts'
 import { sidecarWorkspaceRoot } from '../_workspace.ts'
@@ -5,6 +6,23 @@ import { sidecarWorkspaceRoot } from '../_workspace.ts'
 function requestPath(context: any): string {
   const value = typeof context.request?.url === 'string' ? context.request.url : '/api'
   try { return new URL(value, 'http://local').pathname } catch { return '/api' }
+}
+
+function officialSidecarPath(path: string): string {
+  const match = path.match(/^\/api\/([A-Za-z0-9_-]+)\.([A-Za-z0-9_.-]+)$/)
+  if (!match) return path
+  const [, ns, method] = match
+  if (ns === 'remote' || ns === 'events' || ns === 'sidebar') return path
+  return `/api/${ns}/${method}`
+}
+
+function pathAliases(...paths: string[]): Set<string> {
+  const aliases = new Set<string>()
+  for (const path of paths) {
+    aliases.add(path)
+    aliases.add(officialSidecarPath(path))
+  }
+  return aliases
 }
 
 function requestSearch(context: any, incomingUrl: URL): string {
@@ -147,7 +165,7 @@ function eventStream(context: any, kind: 'mux' | 'host'): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const stopKeepalive = startSseKeepalive(controller, encoder)
-      const streamError = (error: unknown): void => {
+      const finishError = (error: unknown): void => {
         stopKeepalive()
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -164,30 +182,58 @@ function eventStream(context: any, kind: 'mux' | 'host'): Response {
         }
         try { controller.close() } catch { /* already cancelled */ }
       }
-      try {
-        const sidecar = await getDshWebSidecar(context)
-        const path = kind === 'mux' ? '/api/events.mux' : '/api/events.host'
-        socket = new WebSocket(`ws://127.0.0.1:${String(sidecar.port)}${path}`, {
-          headers: {
-            origin: `http://127.0.0.1:${String(sidecar.port)}`,
-            cookie: sidecar.cookie,
-          },
-        })
-        const close = (): void => {
-          if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
+      const aborted = (): boolean => Boolean(signal?.aborted)
+      const closeSocket = (): void => {
+        if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
+      }
+      signal?.addEventListener('abort', closeSocket, { once: true })
+      let lastError: unknown
+      for (let attempt = 0; attempt < 8 && !aborted(); attempt += 1) {
+        lastError = undefined
+        try {
+          const sidecar = await getDshWebSidecar(context)
+          const path = kind === 'mux' ? '/api/events.mux' : '/api/events.host'
+          const connected = await new Promise<boolean>((resolve) => {
+            let settled = false
+            const done = (ok: boolean, error?: unknown): void => {
+              if (settled) return
+              settled = true
+              if (error) lastError = error
+              resolve(ok)
+            }
+            socket = new WebSocket(`ws://127.0.0.1:${String(sidecar.port)}${path}`, {
+              headers: {
+                origin: `http://127.0.0.1:${String(sidecar.port)}`,
+                cookie: sidecar.cookie,
+              },
+            })
+            socket.once('open', () => done(true))
+            socket.on('message', data => {
+              try { controller.enqueue(encoder.encode(`data: ${data.toString()}\n\n`)) } catch { closeSocket() }
+            })
+            socket.once('error', error => done(false, error))
+            socket.once('close', () => done(false, lastError || new Error('sidecar event stream closed')))
+          })
+          if (connected && socket) {
+            await new Promise<void>((resolve) => {
+              socket?.once('close', () => resolve())
+              if (aborted() || socket?.readyState === WebSocket.CLOSED) resolve()
+            })
+            if (aborted()) break
+            await new Promise(resolve => setTimeout(resolve, 250))
+            continue
+          }
+        } catch (error) {
+          lastError = error
         }
-        signal?.addEventListener('abort', close, { once: true })
-        socket.on('message', data => {
-          try { controller.enqueue(encoder.encode(`data: ${data.toString()}\n\n`)) } catch { close() }
-        })
-        socket.once('error', streamError)
-        socket.once('close', () => {
-          stopKeepalive()
-          signal?.removeEventListener('abort', close)
-          try { controller.close() } catch { /* already cancelled */ }
-        })
-      } catch (error) {
-        streamError(error)
+        if (aborted()) break
+        await new Promise(resolve => setTimeout(resolve, Math.min(2_000, 250 * (attempt + 1))))
+      }
+      signal?.removeEventListener('abort', closeSocket)
+      if (!aborted()) finishError(lastError || new Error('sidecar event stream closed'))
+      else {
+        stopKeepalive()
+        try { controller.close() } catch { /* already cancelled */ }
       }
     },
     cancel() {
@@ -254,10 +300,10 @@ function rejectLockedPreset(rpcId: unknown, agentPreset: string): Response {
 }
 
 const LOCKED_MODEL_SETTINGS = new Set(['llm-deepseek', 'llm-pi-ai'])
-const LOCKED_CREDENTIAL_PATHS = new Set([
+const LOCKED_CREDENTIAL_PATHS = pathAliases(
   '/api/credentials.set',
   '/api/credentials.unset',
-])
+)
 
 function rejectLockedModelConfig(rpcId: unknown, reason: string): Response {
   return Response.json({
@@ -309,13 +355,62 @@ async function pickSandboxDirectory(context: any): Promise<Response> {
   if (!conversationId) {
     return Response.json({ error: 'makers-conversation-id is required for the sandbox workspace.' }, { status: 400 })
   }
+  const path = sidecarWorkspaceRoot(conversationId)
+  await mkdir(path, { recursive: true })
   const rpcId = asRecord(context.request?.body)?.rpcId
   return Response.json({
     type: 'server-response',
     rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
     result: {
       ok: true,
-      value: sidecarWorkspaceRoot(conversationId),
+      value: path,
+    },
+  })
+}
+
+function isWorkspaceCreatePath(path: string): boolean {
+  return path === '/api/workspace/create' || path === '/api/workspace.create'
+}
+
+function rewriteWorkspaceCreatePath(body: unknown, workspacePath: string): unknown {
+  const envelope = asRecord(body)
+  if (!envelope) return { type: 'client-request', rpcId: crypto.randomUUID(), method: 'workspace/create', payload: { args: { request: { path: workspacePath } } } }
+  const payload = asRecord(envelope.payload) ?? {}
+  const args = asRecord(payload.args) ?? {}
+  const request = asRecord(args.request) ?? {}
+  return {
+    ...envelope,
+    method: typeof envelope.method === 'string' ? String(envelope.method).replaceAll('.', '/') : 'workspace/create',
+    payload: {
+      ...payload,
+      args: {
+        ...args,
+        request: { ...request, path: workspacePath },
+      },
+    },
+  }
+}
+
+function adoptedWorkspaceResponse(sidecar: DshWebSidecar, rpcId: unknown): Response | undefined {
+  const workspace = sidecar.workspace
+  if (!workspace) return undefined
+  const now = new Date().toISOString()
+  return Response.json({
+    type: 'server-response',
+    rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
+    result: {
+      ok: true,
+      value: {
+        workspace: {
+          workspaceId: workspace.workspaceId,
+          path: workspace.path,
+          title: workspace.title,
+          sessionIds: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+        created: false,
+      },
     },
   })
 }
@@ -343,11 +438,11 @@ function requestedLockedModelConfig(path: string, body: unknown): string | undef
   return undefined
 }
 
-const SETTINGS_WRITE_PATHS = new Set([
+const SETTINGS_WRITE_PATHS = pathAliases(
   '/api/settings.update',
   '/api/settings.replace',
   '/api/settings.mutate',
-])
+)
 
 function settingsWriteSucceeded(bytes: Uint8Array): boolean {
   try {
@@ -458,8 +553,17 @@ async function proxy(context: any): Promise<Response> {
   if (lockedModelConfig) return rejectLockedModelConfig(asRecord(incomingBody)?.rpcId, lockedModelConfig)
 
   const sidecar = await getDshWebSidecar(context)
+  if (isWorkspaceCreatePath(path)) {
+    const conversationId = String(context.conversation_id || sidecar.conversationId || '').trim()
+    const workspacePath = sidecarWorkspaceRoot(conversationId)
+    await mkdir(workspacePath, { recursive: true })
+    const adopted = adoptedWorkspaceResponse(sidecar, asRecord(incomingBody)?.rpcId)
+    if (adopted) return adopted
+    context.request.body = rewriteWorkspaceCreatePath(incomingBody, workspacePath)
+  }
   const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : path, 'http://local')
-  const upstreamUrl = new URL(`${incomingUrl.pathname}${requestSearch(context, incomingUrl)}`, `http://127.0.0.1:${String(sidecar.port)}`)
+  const upstreamPath = officialSidecarPath(incomingUrl.pathname)
+  const upstreamUrl = new URL(`${upstreamPath}${requestSearch(context, incomingUrl)}`, `http://127.0.0.1:${String(sidecar.port)}`)
   const method = String(context.request?.method || 'POST').toUpperCase()
   const body = method === 'GET' || method === 'HEAD'
     ? undefined
@@ -479,7 +583,7 @@ async function proxy(context: any): Promise<Response> {
   headers.delete('content-encoding')
   headers.delete('content-length')
   headers.delete('transfer-encoding')
-  if (path === '/api/session.export' && method === 'GET') {
+  if ((path === '/api/session.export' || path === '/api/session/export') && method === 'GET') {
     const bytes = new Uint8Array(await upstream.arrayBuffer())
     if (!headers.has('content-type')) headers.set('content-type', 'application/zip')
     // Makers' strict stream detector only treats SSE / chunked / this flag as binary.

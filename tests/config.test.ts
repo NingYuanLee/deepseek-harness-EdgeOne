@@ -98,6 +98,10 @@ test('sidecar defaults to official DeepSeek and reads the key from the environme
   assert.match(source, /Every Makers tool stays available/)
   assert.match(source, /Commands and preview ask for confirmation/)
   assert.match(source, /workspace\.create/)
+  assert.match(source, /sidecar-runtime\.json/)
+  assert.match(source, /sidecar\.lock/)
+  assert.match(source, /attachExistingSidecar/)
+  assert.match(source, /owner: true/)
   assert.doesNotMatch(source, /displayName: EdgeOne Makers/)
   assert.doesNotMatch(source, /DEEPSEEK_BASE_URL: gateway\.baseUrl/)
   assert.doesNotMatch(source, /DEEPSEEK_API_KEY: 'makers-proxy'/)
@@ -113,6 +117,11 @@ test('API proxy returns the sandbox workspace instead of a native directory pick
   assert.doesNotMatch(pick.slice(0, 800), /getDshWebSidecar/)
   assert.match(source, /startSseKeepalive/)
   assert.match(source, /: keepalive/)
+  assert.match(source, /officialSidecarPath/)
+  assert.match(source, /isWorkspaceCreatePath/)
+  assert.match(source, /\/api\/workspace\/create/)
+  assert.match(source, /adoptedWorkspaceResponse/)
+  assert.match(pick, /mkdir/)
 })
 
 test('API proxy refuses selecting the four shipped agent presets', async () => {

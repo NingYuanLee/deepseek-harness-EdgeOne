@@ -13347,6 +13347,7 @@ window.__ModuleLoader__.load({
 			"hero.preview": "预览版",
 			"hero.chooseWorkspace": "选择工作区",
 			"hero.cloudWorkspace": "EdgeOne 沙箱",
+			"placeholder.workspace": "正在准备沙箱…",
 			"session.hierarchy": "会话层级",
 			"todo.title": "任务",
 			"todo.progress.done": "{done} 已完成",
@@ -13497,6 +13498,7 @@ window.__ModuleLoader__.load({
 			"hero.preview": "Preview",
 			"hero.chooseWorkspace": "Choose workspace",
 			"hero.cloudWorkspace": "EdgeOne Sandbox",
+			"placeholder.workspace": "Preparing the sandbox…",
 			"session.hierarchy": "Session hierarchy",
 			"todo.title": "To-dos",
 			"todo.progress.done": "{done} completed",
@@ -14441,9 +14443,7 @@ window.__ModuleLoader__.load({
 					disabled: true,
 					placeholder: t("placeholder.workspace"),
 					workspacePickerOpen: pickerOpen,
-					onRequestWorkspace: () => {
-						setPickerOpen(true);
-					}
+					onRequestWorkspace: () => {}
 				} : !inert && composerBlock !== void 0 ? {
 					blocked: composerBlock,
 					placeholder: composerBlock.reason

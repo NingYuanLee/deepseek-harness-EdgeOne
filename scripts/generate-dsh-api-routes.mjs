@@ -25,6 +25,16 @@ const methods = [
   'agent-teams/state', 'agent-teams/plan', 'agent-teams/halt',
   'sidebar.proxy',
   'messageFeedback/delete', 'messageFeedback/list', 'messageFeedback/put',
+  'workspace/create', 'workspace/rename', 'workspace/delete', 'workspace/archiveSession',
+  'workspace/insertBefore', 'workspace/insertSessionBefore',
+  'session/create', 'session/list', 'session/search', 'session/prompt', 'session/attachment',
+  'session/cancel', 'session/fork', 'session/rename', 'session/selectModel', 'session/updateQueue',
+  'session/modelCatalog', 'session/page', 'session/control', 'session/canOpenWorkspacePath',
+  'session/openWorkspacePath', 'session/export',
+  'skills/list', 'fileReferences/list',
+  'settings/describe', 'settings/update', 'settings/replace', 'settings/mutate',
+  'settings/openSettingsDocument', 'settings/canOpenAgentPresetDirectory', 'settings/openAgentPresetDirectory',
+  'credentials/describe', 'credentials/set', 'credentials/unset',
 ]
 
 await mkdir(apiDir, { recursive: true })

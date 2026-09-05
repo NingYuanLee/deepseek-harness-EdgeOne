@@ -745,13 +745,13 @@ function patchConversationBundle(source) {
   next = mustReplace(
     next,
     '			"hero.chooseWorkspace": "选择工作区",',
-    '			"hero.chooseWorkspace": "选择工作区",\n			"hero.cloudWorkspace": "EdgeOne 沙箱",',
+    '			"hero.chooseWorkspace": "选择工作区",\n			"hero.cloudWorkspace": "EdgeOne 沙箱",\n			"placeholder.workspace": "正在准备沙箱…",',
     'conversation zh locale',
   )
   next = mustReplace(
     next,
     '			"hero.chooseWorkspace": "Choose workspace",',
-    '			"hero.chooseWorkspace": "Choose workspace",\n			"hero.cloudWorkspace": "EdgeOne Sandbox",',
+    '			"hero.chooseWorkspace": "Choose workspace",\n			"hero.cloudWorkspace": "EdgeOne Sandbox",\n			"placeholder.workspace": "Preparing the sandbox…",',
     'conversation en locale',
   )
   next = mustReplace(
@@ -863,6 +863,14 @@ function patchConversationBundle(source) {
 			}, [sessionId, workspaces.phase, workspaces.items, selectWorkspace]);`,
     'auto-select the only sandbox workspace',
   )
+  next = mustReplace(
+    next,
+    `					onRequestWorkspace: () => {
+						setPickerOpen(true);
+					}`,
+    `					onRequestWorkspace: () => {}`,
+    'composer does not open a workspace picker',
+  )
   return next
 }
 
@@ -901,22 +909,37 @@ function patchWorkspaceBundle(source) {
 					if (target === void 0) {
 						if (workspace.items.length === 0) {
 							initial = "adopting";
-							this.pickDirectory().then((path) => {
+							const adopt = (path) => {
 								if (disposed || !path) throw new Error("sandbox workspace path unavailable");
+								const latest = this.workspaces.list.getSnapshot().items[0];
+								if (latest) return { ok: true, value: { workspace: latest } };
 								return this.workspaces.create({ path });
-							}).then((result) => {
-								if (disposed) return;
-								if (!result.ok) throw new Error(result.error.message);
-								return this.connectWorkspace(result.value.workspace.workspaceId);
-							}).then((sessionId) => {
+							};
+							const finish = (sessionId) => {
 								if (disposed || sessionId === void 0) return;
 								if (this.sessions.list.getSnapshot().current === void 0) this.sessions.open(sessionId);
 								initial = "done";
-							}, (reason) => {
+							};
+							const failed = (reason) => {
 								if (disposed) return;
-								initial = "waiting";
 								console.warn("sandbox workspace adopt failed:", reason);
-							});
+								setTimeout(() => {
+									if (!disposed && initial === "adopting") initial = "waiting";
+								}, 1500);
+							};
+							setTimeout(() => {
+								if (disposed) return;
+								const ready = this.workspaces.list.getSnapshot().items[0];
+								if (ready) {
+									this.connectWorkspace(ready.workspaceId).then(finish, failed);
+									return;
+								}
+								this.pickDirectory().then(adopt).then((result) => {
+									if (disposed) return;
+									if (!result.ok) throw new Error(result.error.message);
+									return this.connectWorkspace(result.value.workspace.workspaceId);
+								}).then(finish, failed);
+							}, 800);
 							return;
 						}
 						initial = "done";
