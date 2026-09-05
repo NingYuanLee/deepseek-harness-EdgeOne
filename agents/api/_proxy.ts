@@ -28,6 +28,34 @@ function asStreamBody(context: any): Record<string, unknown> | undefined {
   return asRecord(context.request?.body)
 }
 
+function sseHeaders(): HeadersInit {
+  return {
+    'content-type': 'text/event-stream; charset=utf-8',
+    'cache-control': 'no-cache, no-transform',
+    connection: 'keep-alive',
+    'x-accel-buffering': 'no',
+  }
+}
+
+function startSseKeepalive(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+): () => void {
+  try {
+    controller.enqueue(encoder.encode(': connected\n\n'))
+  } catch {
+    // The browser already disconnected.
+  }
+  const timer = setInterval(() => {
+    try {
+      controller.enqueue(encoder.encode(': keepalive\n\n'))
+    } catch {
+      // The browser already disconnected.
+    }
+  }, 2_000)
+  return () => clearInterval(timer)
+}
+
 function remoteMuxStream(context: any): Response {
   const encoder = new TextEncoder()
   let socket: WebSocket | undefined
@@ -43,7 +71,9 @@ function remoteMuxStream(context: any): Response {
   }
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const stopKeepalive = startSseKeepalive(controller, encoder)
       const streamError = (error: unknown): void => {
+        stopKeepalive()
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'error',
@@ -78,7 +108,6 @@ function remoteMuxStream(context: any): Response {
         socket.once('open', () => {
           try {
             socket?.send(JSON.stringify({ type: 'open', streamId, endpoint, payload }))
-            controller.enqueue(encoder.encode(': connected\n\n'))
           } catch {
             close()
           }
@@ -96,6 +125,7 @@ function remoteMuxStream(context: any): Response {
         })
         socket.once('error', streamError)
         socket.once('close', () => {
+          stopKeepalive()
           signal?.removeEventListener('abort', close)
           try { controller.close() } catch { /* already cancelled */ }
         })
@@ -107,14 +137,7 @@ function remoteMuxStream(context: any): Response {
       if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
     },
   })
-  return new Response(stream, {
-    headers: {
-      'content-type': 'text/event-stream; charset=utf-8',
-      'cache-control': 'no-cache, no-transform',
-      connection: 'keep-alive',
-      'x-accel-buffering': 'no',
-    },
-  })
+  return new Response(stream, { headers: sseHeaders() })
 }
 
 function eventStream(context: any, kind: 'mux' | 'host'): Response {
@@ -123,7 +146,9 @@ function eventStream(context: any, kind: 'mux' | 'host'): Response {
   const signal = context.request?.signal as AbortSignal | undefined
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const stopKeepalive = startSseKeepalive(controller, encoder)
       const streamError = (error: unknown): void => {
+        stopKeepalive()
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'server-request',
@@ -152,14 +177,12 @@ function eventStream(context: any, kind: 'mux' | 'host'): Response {
           if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
         }
         signal?.addEventListener('abort', close, { once: true })
-        socket.once('open', () => {
-          try { controller.enqueue(encoder.encode(': connected\n\n')) } catch { close() }
-        })
         socket.on('message', data => {
           try { controller.enqueue(encoder.encode(`data: ${data.toString()}\n\n`)) } catch { close() }
         })
         socket.once('error', streamError)
         socket.once('close', () => {
+          stopKeepalive()
           signal?.removeEventListener('abort', close)
           try { controller.close() } catch { /* already cancelled */ }
         })
@@ -171,14 +194,7 @@ function eventStream(context: any, kind: 'mux' | 'host'): Response {
       if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
     },
   })
-  return new Response(stream, {
-    headers: {
-      'content-type': 'text/event-stream; charset=utf-8',
-      'cache-control': 'no-cache, no-transform',
-      connection: 'keep-alive',
-      'x-accel-buffering': 'no',
-    },
-  })
+  return new Response(stream, { headers: sseHeaders() })
 }
 
 const LOCKED_BUILT_IN_PRESETS = new Set(['standard', 'code', 'minimal', 'cordis'])
@@ -259,14 +275,17 @@ function rejectLockedModelConfig(rpcId: unknown, reason: string): Response {
 }
 
 async function pickSandboxDirectory(context: any): Promise<Response> {
-  const sidecar = await getDshWebSidecar(context)
+  const conversationId = String(context.conversation_id || '').trim()
+  if (!conversationId) {
+    return Response.json({ error: 'makers-conversation-id is required for the sandbox workspace.' }, { status: 400 })
+  }
   const rpcId = asRecord(context.request?.body)?.rpcId
   return Response.json({
     type: 'server-response',
     rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
     result: {
       ok: true,
-      value: sidecarWorkspaceRoot(sidecar.conversationId),
+      value: sidecarWorkspaceRoot(conversationId),
     },
   })
 }

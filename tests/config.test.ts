@@ -105,9 +105,14 @@ test('sidecar defaults to official DeepSeek and reads the key from the environme
 
 test('API proxy returns the sandbox workspace instead of a native directory picker', async () => {
   const source = await readFile(new URL('../agents/api/_proxy.ts', import.meta.url), 'utf8')
+  const pick = source.slice(source.indexOf('async function pickSandboxDirectory'))
   assert.match(source, /\/api\/directoryPicker\/pick/)
   assert.match(source, /pickSandboxDirectory/)
   assert.match(source, /sidecarWorkspaceRoot/)
+  assert.match(pick, /context\.conversation_id/)
+  assert.doesNotMatch(pick.slice(0, 800), /getDshWebSidecar/)
+  assert.match(source, /startSseKeepalive/)
+  assert.match(source, /: keepalive/)
 })
 
 test('API proxy refuses selecting the four shipped agent presets', async () => {
