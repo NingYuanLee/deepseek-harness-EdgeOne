@@ -1,5 +1,6 @@
 import WebSocket from 'ws'
 import { getDshWebSidecar, snapshotDshSettingsYaml, type DshWebSidecar } from '../_dsh-web-sidecar.ts'
+import { sidecarWorkspaceRoot } from '../_workspace.ts'
 
 function requestPath(context: any): string {
   const value = typeof context.request?.url === 'string' ? context.request.url : '/api'
@@ -257,6 +258,19 @@ function rejectLockedModelConfig(rpcId: unknown, reason: string): Response {
   })
 }
 
+async function pickSandboxDirectory(context: any): Promise<Response> {
+  const sidecar = await getDshWebSidecar(context)
+  const rpcId = asRecord(context.request?.body)?.rpcId
+  return Response.json({
+    type: 'server-response',
+    rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
+    result: {
+      ok: true,
+      value: sidecarWorkspaceRoot(sidecar.conversationId),
+    },
+  })
+}
+
 function rewriteLegacyPiAiOfficialProvider(body: unknown): unknown {
   const envelope = asRecord(body)
   const payload = asRecord(envelope?.payload)
@@ -379,6 +393,7 @@ async function proxy(context: any): Promise<Response> {
   if (path === '/api/remote.mux') return remoteMuxStream(context)
   if (path === '/api/events.mux') return eventStream(context, 'mux')
   if (path === '/api/events.host') return eventStream(context, 'host')
+  if (path === '/api/directoryPicker/pick') return pickSandboxDirectory(context)
 
   const incomingBody = context.request?.body
   const lockedPreset = requestedLockedPreset(incomingBody)

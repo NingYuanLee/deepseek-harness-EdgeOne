@@ -199,7 +199,11 @@ test('settings and model welcome preferences persist through Host even off loopb
 test('generated API routes expose static files the Makers scanner accepts', async () => {
   const route = await readFile(new URL('../agents/api/session.prompt.ts', import.meta.url), 'utf8')
   const remoteRoute = await readFile(new URL('../agents/api/commands/list.ts', import.meta.url), 'utf8')
+  const pickerRoute = await readFile(new URL('../agents/api/directoryPicker/pick.ts', import.meta.url), 'utf8')
+  const generator = await readFile(new URL('../scripts/generate-dsh-api-routes.mjs', import.meta.url), 'utf8')
   assert.match(route, /export async function onRequest/)
   assert.match(remoteRoute, /export async function onRequest/)
   assert.match(remoteRoute, /\.\.\/_proxy\.ts/)
+  assert.match(pickerRoute, /export async function onRequest/)
+  assert.match(generator, /directoryPicker\/pick/)
 })

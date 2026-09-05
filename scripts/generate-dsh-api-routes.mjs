@@ -9,6 +9,7 @@ const methods = [
   'session.updateQueue', 'session.cancel',
   'subagent.list', 'subagent.history', 'subagent.prompt', 'subagent.interrupt',
   'host.describe', 'host.pickDirectory', 'host.listDirectory', 'host.createDirectory', 'host.openPath',
+  'directoryPicker/pick', 'directoryPicker/list', 'directoryPicker/createDirectory',
   'workspace.list', 'workspace.create', 'workspace.rename', 'workspace.delete',
   'workspace.insertBefore', 'workspace.insertSessionBefore', 'workspace.archiveSession',
   'skill.list',

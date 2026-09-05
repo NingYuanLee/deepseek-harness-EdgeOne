@@ -101,6 +101,13 @@ test('sidecar defaults to official DeepSeek and reads the key from the environme
   assert.doesNotMatch(source, /DEEPSEEK_API_KEY: 'makers-proxy'/)
 })
 
+test('API proxy returns the sandbox workspace instead of a native directory picker', async () => {
+  const source = await readFile(new URL('../agents/api/_proxy.ts', import.meta.url), 'utf8')
+  assert.match(source, /\/api\/directoryPicker\/pick/)
+  assert.match(source, /pickSandboxDirectory/)
+  assert.match(source, /sidecarWorkspaceRoot/)
+})
+
 test('API proxy refuses selecting the four shipped agent presets', async () => {
   const source = await readFile(new URL('../agents/api/_proxy.ts', import.meta.url), 'utf8')
   assert.match(source, /LOCKED_BUILT_IN_PRESETS/)
