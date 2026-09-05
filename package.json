@@ -15,7 +15,7 @@
   "scripts": {
     "prepare:makers-runtime": "npm ci --ignore-scripts --os=linux --cpu=x64 --include=optional && node scripts/restore-host-frontend-natives.mjs",
     "prepare:dsh-web": "node scripts/prepare-dsh-web.mjs && node scripts/generate-dsh-api-routes.mjs",
-    "dev": "vite",
+    "dev": "node --experimental-strip-types scripts/local-dev.mjs",
     "build": "npm run prepare:dsh-web && vite build",
     "build:makers": "npm run build && npm run prepare:makers-runtime && node scripts/prune-agent-dependencies.mjs && node scripts/clean-agent-node.mjs",
     "test": "npm run prepare:dsh-web && node --experimental-strip-types --test tests/*.test.ts",

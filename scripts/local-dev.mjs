@@ -1,0 +1,158 @@
+import { createServer } from 'node:http'
+import { readFileSync } from 'node:fs'
+import { readFile, stat } from 'node:fs/promises'
+import { extname, join, normalize, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = fileURLToPath(new URL('..', import.meta.url))
+const publicDir = join(root, 'public')
+const port = Number(process.env.PORT || 8088)
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json',
+  '.map': 'application/json',
+  '.webmanifest': 'application/manifest+json',
+  '.ico': 'image/x-icon',
+}
+
+function loadDotEnv() {
+  const env = { ...process.env }
+  let text = ''
+  try {
+    text = readFileSync(join(root, '.env'), 'utf8')
+  } catch {
+    return env
+  }
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line || line.startsWith('#')) continue
+    const cut = line.indexOf('=')
+    if (cut <= 0) continue
+    const key = line.slice(0, cut).trim()
+    if (!key || Object.hasOwn(env, key)) continue
+    env[key] = line.slice(cut + 1).trim()
+  }
+  return env
+}
+
+const conversations = new Map()
+
+function memoryStore(conversationId) {
+  let row = conversations.get(conversationId)
+  if (!row) {
+    row = { metadata: {} }
+    conversations.set(conversationId, row)
+  }
+  return {
+    async getConversation() {
+      return row
+    },
+    async updateConversation(arg) {
+      const metadata = arg?.metadata && typeof arg.metadata === 'object' ? arg.metadata : arg
+      if (metadata && typeof metadata === 'object') Object.assign(row.metadata, metadata)
+    },
+    async appendMessage() {},
+  }
+}
+
+function envFromFile() {
+  return loadDotEnv()
+}
+
+async function readBody(req) {
+  const chunks = []
+  for await (const chunk of req) chunks.push(chunk)
+  const text = Buffer.concat(chunks).toString('utf8')
+  if (!text) return {}
+  try {
+    return JSON.parse(text)
+  } catch {
+    return {}
+  }
+}
+
+function makersContext(req, body, env) {
+  const url = new URL(req.url || '/', `http://127.0.0.1:${String(port)}`)
+  const conversationId = String(req.headers['makers-conversation-id'] || body?.conversation_id || 'local-dev').trim()
+  return {
+    conversation_id: conversationId,
+    env,
+    store: memoryStore(conversationId),
+    sandbox: undefined,
+    tools: { all: () => [] },
+    utils: { abortActiveRun: async () => ({ aborted: false }) },
+    request: {
+      url: url.pathname + url.search,
+      method: req.method,
+      headers: req.headers,
+      body,
+      query: Object.fromEntries(url.searchParams),
+    },
+  }
+}
+
+async function sendWebResponse(res, response) {
+  res.writeHead(response.status, Object.fromEntries(response.headers.entries()))
+  if (!response.body) {
+    res.end()
+    return
+  }
+  const bytes = Buffer.from(await response.arrayBuffer())
+  res.end(bytes)
+}
+
+async function serveStatic(res, pathname) {
+  const decoded = decodeURIComponent(pathname)
+  const target = normalize(join(publicDir, decoded === '/' ? 'index.html' : decoded.replace(/^[/\\]+/, '')))
+  if (target !== publicDir && !target.startsWith(publicDir + sep)) {
+    res.writeHead(403).end()
+    return
+  }
+  try {
+    const info = await stat(target)
+    if (!info.isFile()) throw new Error('not a file')
+    const body = await readFile(target)
+    res.writeHead(200, { 'content-type': MIME[extname(target)] || 'application/octet-stream' })
+    res.end(body)
+  } catch {
+    const html = await readFile(join(publicDir, 'index.html'))
+    res.writeHead(200, { 'content-type': MIME['.html'] })
+    res.end(html)
+  }
+}
+
+const env = envFromFile()
+const { onRequest } = await import('../agents/api/_proxy.ts')
+const { onRequestPost } = await import('../agents/stop.ts')
+
+const server = createServer((req, res) => {
+  void (async () => {
+    const url = new URL(req.url || '/', `http://127.0.0.1:${String(port)}`)
+    if (url.pathname.startsWith('/api') || url.pathname === '/stop') {
+      const body = req.method === 'GET' || req.method === 'HEAD' ? {} : await readBody(req)
+      const context = makersContext(req, body, env)
+      const response = url.pathname === '/stop'
+        ? await onRequestPost(context)
+        : await onRequest(context)
+      await sendWebResponse(res, response)
+      return
+    }
+    await serveStatic(res, url.pathname)
+  })().catch((error) => {
+    console.warn('[local-dev] request failed:', error)
+    if (!res.headersSent) res.writeHead(500, { 'content-type': 'application/json' })
+    res.end(JSON.stringify({
+      error: 'LOCAL_DEV_FAILED',
+      message: error instanceof Error ? error.message : String(error),
+    }))
+  })
+})
+
+await new Promise((resolve, reject) => {
+  server.once('error', reject)
+  server.listen(port, '127.0.0.1', resolve)
+})
+console.log(`Makers frontend: http://127.0.0.1:${String(port)}`)

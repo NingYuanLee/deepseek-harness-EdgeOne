@@ -57,7 +57,7 @@ async function proxyGatewayRequest(
   })
   const body = normalizeGatewayRequest(await readJsonBody(request))
   if (typeof body.model !== 'string' || !body.model.trim()) {
-    body.model = envValue(context, 'AI_GATEWAY_MODEL') || '@makers/deepseek-v4-flash'
+    body.model = envValue(context, 'AI_GATEWAY_MODEL') || 'deepseek-v4-flash'
   }
   const upstream = await fetch(`${upstreamBaseUrl}/chat/completions`, {
     method: 'POST',

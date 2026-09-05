@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { createServer } from 'node:net'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { startLocalGatewayProxy, type LocalGatewayProxy } from './_gateway-proxy.ts'
 import { makersMcpPermissionSource } from './_makers-mcp-permission.mjs'
@@ -32,7 +33,7 @@ function safeSegment(value: string): string {
 }
 
 export function dshHomeFor(conversationId: string): string {
-  return join('/tmp', 'dsh-makers-web', safeSegment(conversationId))
+  return join(tmpdir(), 'dsh-makers-web', safeSegment(conversationId))
 }
 
 function isMissingConversation(error: unknown): boolean {
@@ -157,38 +158,29 @@ async function freePort(): Promise<number> {
   return port
 }
 
-const MAKERS_PROVIDER = 'edgeone-makers'
+const OFFICIAL_PROVIDER = 'deepseek-official'
 const MAKERS_GATEWAY_API_KEY_ENV = 'MAKERS_GATEWAY_API_KEY'
-const DEFAULT_MAKERS_MODEL = '@makers/deepseek-v4-flash'
-// Built-in Makers Models: https://pages.edgeone.ai/zh/document/models-vendors-overview
-const MAKERS_MODELS = [
-  { id: '@makers/hy3', name: 'Hy-3' },
-  { id: '@makers/hy3-preview', name: 'Hy-3-Preview' },
-  { id: '@makers/deepseek-v4-pro', name: 'DeepSeek-V4-Pro', reasoning: true },
-  { id: '@makers/deepseek-v4-flash', name: 'DeepSeek-V4-Flash', reasoning: true },
-  { id: '@makers/minimax-m3', name: 'MiniMax-M3' },
-  { id: '@makers/minimax-m2.7', name: 'MiniMax-M2.7' },
-  { id: '@makers/kimi-k2.6', name: 'Kimi-K2.6' },
-] as const
-
-type MakersModel = {
-  id: string
-  name: string
-  reasoning?: boolean
-}
+const DEFAULT_OFFICIAL_MODEL = 'deepseek-v4-flash'
+const DEFAULT_OFFICIAL_BASE_URL = 'https://api.deepseek.com'
 
 function envString(context: any, key: string): string {
   const value = context?.env?.[key]
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function makersDefaultModelSection(defaultModel: string): string {
+function officialDefaultModelSection(defaultModel: string): string {
   return [
     'agent-default-model:',
-    `  provider: ${MAKERS_PROVIDER}`,
+    `  provider: ${OFFICIAL_PROVIDER}`,
     `  model: ${JSON.stringify(defaultModel)}`,
     '',
   ].join('\n')
+}
+
+function officialDefaultModel(context: any): string {
+  const fromEnv = envString(context, 'DEEPSEEK_MODEL') || envString(context, 'AI_GATEWAY_MODEL')
+  if (fromEnv && !fromEnv.startsWith('@makers/')) return fromEnv
+  return DEFAULT_OFFICIAL_MODEL
 }
 
 function settingsFieldOf(yaml: string, namespace: string, key: string): string | undefined {
@@ -203,8 +195,8 @@ function settingsProviderOf(yaml: string, namespace: string): string | undefined
   return settingsFieldOf(yaml, namespace, 'provider')
 }
 
-/** Seed or migrate the Host default to the Makers catalog unless the user already picked a Makers model. */
-export async function ensureMakersDefaultModelSettings(home: string, defaultModel: string): Promise<void> {
+/** Seed or migrate the Host default to official DeepSeek unless the user already picked that provider. */
+export async function ensureOfficialDefaultModelSettings(home: string, defaultModel: string): Promise<void> {
   const path = join(home, DSH_SETTINGS_FILE)
   let yaml = ''
   try {
@@ -215,8 +207,8 @@ export async function ensureMakersDefaultModelSettings(home: string, defaultMode
       : ''
     if (code !== 'ENOENT') throw error
   }
-  if (settingsProviderOf(yaml, 'agent-default-model') === MAKERS_PROVIDER) return
-  const section = makersDefaultModelSection(defaultModel)
+  if (settingsProviderOf(yaml, 'agent-default-model') === OFFICIAL_PROVIDER) return
+  const section = officialDefaultModelSection(defaultModel)
   const next = yaml.trim()
     ? /^agent-default-model:/m.test(yaml)
       ? yaml.replace(/^agent-default-model:\n(?:[ \t]+.*\n)*/m, section)
@@ -224,31 +216,6 @@ export async function ensureMakersDefaultModelSettings(home: string, defaultMode
     : section
   await mkdir(home, { recursive: true })
   await writeFile(path, next)
-}
-
-function makersModelCatalog(defaultModel: string): MakersModel[] {
-  const catalog: MakersModel[] = MAKERS_MODELS.map(model => ({ ...model }))
-  if (!catalog.some(model => model.id === defaultModel)) {
-    catalog.unshift({ id: defaultModel, name: defaultModel })
-  }
-  return catalog
-}
-
-function modelYaml(models: MakersModel[]): string[] {
-  return models.flatMap(model => [
-    `          - id: ${JSON.stringify(model.id)}`,
-    `            name: ${JSON.stringify(model.name)}`,
-    '            contextWindow: 1000000',
-    '            maxTokens: 256000',
-    ...(model.reasoning ? [
-      '            compat:',
-      '              thinkingFormat: deepseek',
-      '            reasoningEfforts:',
-      "              'off':",
-      '              high: high',
-      '              max: max',
-    ] : []),
-  ])
 }
 
 async function writeProfilePatch(
@@ -312,19 +279,12 @@ async function writeProfilePatch(
     '',
     '- id: agent-default-model',
     '  config:',
-    `    provider: ${MAKERS_PROVIDER}`,
+    `    provider: ${OFFICIAL_PROVIDER}`,
     `    model: ${JSON.stringify(options.defaultModel)}`,
     '',
     '- id: llm-pi-ai',
     '  config:',
-    '    providers:',
-    `      ${MAKERS_PROVIDER}:`,
-    '        displayName: EdgeOne Makers',
-    `        apiKeyEnv: ${MAKERS_GATEWAY_API_KEY_ENV}`,
-    '        api: openai-completions',
-    `        baseURL: ${JSON.stringify(options.gatewayBaseUrl)}`,
-    '        models:',
-    ...modelYaml(makersModelCatalog(options.defaultModel)),
+    '    providers: {}',
     '',
     '- insert:',
     '    - id: makers-mcp',
@@ -401,12 +361,12 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     startLocalMcpBridge(context, conversationId),
   ])
   const home = dshHomeFor(conversationId)
-  const defaultModel = envString(context, 'AI_GATEWAY_MODEL') || DEFAULT_MAKERS_MODEL
+  const defaultModel = officialDefaultModel(context)
   const deepseekApiKey = envString(context, 'DEEPSEEK_API_KEY')
-  const deepseekBaseUrl = envString(context, 'DEEPSEEK_BASE_URL')
+  const deepseekBaseUrl = envString(context, 'DEEPSEEK_BASE_URL') || DEFAULT_OFFICIAL_BASE_URL
   await mkdir(home, { recursive: true })
   await restoreDshSettingsYaml(context, conversationId, home)
-  await ensureMakersDefaultModelSettings(home, defaultModel)
+  await ensureOfficialDefaultModelSettings(home, defaultModel)
   await writeProfilePatch(home, {
     mcpUrl: mcp.url,
     gatewayBaseUrl: gateway.baseUrl,
@@ -423,13 +383,13 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
   ], {
     cwd: home,
     env: {
-      PATH: typeof context.env?.PATH === 'string' ? context.env.PATH : '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-      HOME: '/tmp',
+      PATH: typeof context.env?.PATH === 'string' ? context.env.PATH : (process.env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'),
+      HOME: typeof context.env?.HOME === 'string' ? context.env.HOME : tmpdir(),
       DSH_HOME: home,
       DSH_CWD: home,
       [MAKERS_GATEWAY_API_KEY_ENV]: 'makers-proxy',
       ...(deepseekApiKey ? { DEEPSEEK_API_KEY: deepseekApiKey } : {}),
-      ...(deepseekBaseUrl ? { DEEPSEEK_BASE_URL: deepseekBaseUrl } : {}),
+      DEEPSEEK_BASE_URL: deepseekBaseUrl,
       DSH_TELEMETRY_DISABLED: '1',
       NO_COLOR: '1',
     },

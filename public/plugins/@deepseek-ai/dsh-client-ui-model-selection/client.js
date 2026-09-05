@@ -54,7 +54,7 @@ window.__ModuleLoader__.load({
 				const { result } = await this.sessions.models({ sessionId: this.sessionId });
 				if (this.disposed || generation !== this.generation) {
 					if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`);
-					return { ...result.value, groups: result.value.groups.filter((group) => group.id === "edgeone-makers") };
+					return { ...result.value, groups: result.value.groups.filter((group) => group.id === "deepseek-official") };
 				}
 				if (!result.ok) {
 					this.store.update((s) => {
@@ -64,16 +64,16 @@ window.__ModuleLoader__.load({
 					throw new Error(`session.models failed: ${result.error.code}: ${result.error.message}`);
 				}
 				const { current, routable, groups, failures } = result.value;
-				const makersGroups = groups.filter((group) => group.id === "edgeone-makers");
+				const officialGroups = groups.filter((group) => group.id === "deepseek-official");
 				this.store.update((s) => {
 					if (this.inflightSelect === 0) s.current = current;
 					s.routable = routable;
-					s.groups = makersGroups;
+					s.groups = officialGroups;
 					s.failures = failures;
 					s.status = "ready";
 					s.error = null;
 				});
-				return { ...result.value, groups: makersGroups };
+				return { ...result.value, groups: officialGroups };
 			}
 			/**
 			* Select the complete provider/model/reasoning selection (both entries submit through here). Success

@@ -61,14 +61,14 @@ function patchSettingsModelsBundle(source) {
   next = mustReplace(
     next,
     '			intro: "Enter your API keys to use models from the following providers.",',
-    '			intro: "Enter your API keys to use models from the following providers.",\n			makersProvided: "Models are provided by EdgeOne Makers.",\n			learnMore: "Learn more",',
-    'en makers models copy',
+    '			intro: "Enter your API keys to use models from the following providers.",\n			officialProvided: "Models come from the official DeepSeek API. The key is read only from DEEPSEEK_API_KEY.",\n			learnMore: "Learn more",',
+    'en official models copy',
   )
   next = mustReplace(
     next,
     '			intro: "填入各提供方的 API 密钥即可使用其模型。",',
-    '			intro: "填入各提供方的 API 密钥即可使用其模型。",\n			makersProvided: "模型由 EdgeOne Makers 提供。",\n			learnMore: "了解更多",',
-    'zh makers models copy',
+    '			intro: "填入各提供方的 API 密钥即可使用其模型。",\n			officialProvided: "模型由 DeepSeek 原厂提供，API Key 仅从环境变量 DEEPSEEK_API_KEY 读取。",\n			learnMore: "了解更多",',
+    'zh official models copy',
   )
   next = mustReplace(
     next,
@@ -97,7 +97,6 @@ function patchSettingsModelsBundle(source) {
     `		function ModelsSection(props) {
 			const { t } = props;
 			if (t === void 0) return null;
-			const docs = location.hostname.endsWith(".edgeone.dev") ? "https://pages.edgeone.ai/document/models" : "https://cloud.tencent.com/document/product/1552/132748";
 			return (0, react_jsx_runtime.jsxs)("div", {
 				className: ModelsSection_module_css_default["section"],
 				children: [
@@ -107,11 +106,11 @@ function patchSettingsModelsBundle(source) {
 					}),
 					(0, react_jsx_runtime.jsx)("p", {
 						className: ModelsSection_module_css_default["intro"],
-						children: t("makersProvided")
+						children: t("officialProvided")
 					}),
 					(0, react_jsx_runtime.jsx)("a", {
 						className: ModelsSection_module_css_default["docsLink"],
-						href: docs,
+						href: "https://api-docs.deepseek.com/",
 						target: "_blank",
 						rel: "noopener noreferrer",
 						children: t("learnMore")
@@ -119,7 +118,7 @@ function patchSettingsModelsBundle(source) {
 				]
 			});
 		}`,
-    'models section makers copy',
+    'models section official env-only copy',
   )
   next = mustReplace(
     next,
@@ -200,7 +199,7 @@ function patchModelSelectionBundle(source) {
     `				const { result } = await this.sessions.models({ sessionId: this.sessionId });
 				if (this.disposed || generation !== this.generation) {
 					if (!result.ok) throw new Error(\`\${result.error.code}: \${result.error.message}\`);
-					return { ...result.value, groups: result.value.groups.filter((group) => group.id === "edgeone-makers") };
+					return { ...result.value, groups: result.value.groups.filter((group) => group.id === "deepseek-official") };
 				}
 				if (!result.ok) {
 					this.store.update((s) => {
@@ -210,17 +209,17 @@ function patchModelSelectionBundle(source) {
 					throw new Error(\`session.models failed: \${result.error.code}: \${result.error.message}\`);
 				}
 				const { current, routable, groups, failures } = result.value;
-				const makersGroups = groups.filter((group) => group.id === "edgeone-makers");
+				const officialGroups = groups.filter((group) => group.id === "deepseek-official");
 				this.store.update((s) => {
 					if (this.inflightSelect === 0) s.current = current;
 					s.routable = routable;
-					s.groups = makersGroups;
+					s.groups = officialGroups;
 					s.failures = failures;
 					s.status = "ready";
 					s.error = null;
 				});
-				return { ...result.value, groups: makersGroups };`,
-    'keep only EdgeOne Makers models',
+				return { ...result.value, groups: officialGroups };`,
+    'keep only official DeepSeek models',
   )
   next = mustReplace(
     next,

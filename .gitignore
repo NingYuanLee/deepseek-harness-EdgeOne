@@ -1,6 +1,7 @@
 node_modules
 dist
 .edgeone
+.dsh-local
 .env
 !.env.example
 .DS_Store

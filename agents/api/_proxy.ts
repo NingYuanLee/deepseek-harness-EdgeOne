@@ -140,6 +140,43 @@ function rejectLockedPreset(rpcId: unknown, agentPreset: string): Response {
   })
 }
 
+const LOCKED_MODEL_SETTINGS = new Set(['llm-deepseek', 'llm-pi-ai'])
+const LOCKED_CREDENTIAL_PATHS = new Set([
+  '/api/credentials.set',
+  '/api/credentials.unset',
+])
+
+function rejectLockedModelConfig(rpcId: unknown, reason: string): Response {
+  return Response.json({
+    type: 'server-response',
+    rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
+    result: {
+      ok: false,
+      error: {
+        code: 'model-config-read-only',
+        message: 'Model providers and API keys are locked. Use DEEPSEEK_API_KEY from the environment.',
+        details: { reason },
+      },
+    },
+  })
+}
+
+function requestedLockedModelConfig(path: string, body: unknown): string | undefined {
+  if (LOCKED_CREDENTIAL_PATHS.has(path)) return path
+  const envelope = asRecord(body)
+  const method = typeof envelope?.method === 'string' ? envelope.method : ''
+  const payload = asRecord(envelope?.payload) ?? {}
+  if (
+    (method === 'settings.update' || method === 'settings.replace' || method === 'settings.mutate')
+    && typeof payload.ns === 'string'
+    && LOCKED_MODEL_SETTINGS.has(payload.ns)
+  ) {
+    return payload.ns
+  }
+  if (method === 'credentials.set' || method === 'credentials.unset') return method
+  return undefined
+}
+
 const SETTINGS_WRITE_PATHS = new Set([
   '/api/settings.update',
   '/api/settings.replace',
@@ -183,6 +220,8 @@ async function proxy(context: any): Promise<Response> {
   const incomingBody = context.request?.body
   const lockedPreset = requestedLockedPreset(incomingBody)
   if (lockedPreset) return rejectLockedPreset(asRecord(incomingBody)?.rpcId, lockedPreset)
+  const lockedModelConfig = requestedLockedModelConfig(path, incomingBody)
+  if (lockedModelConfig) return rejectLockedModelConfig(asRecord(incomingBody)?.rpcId, lockedModelConfig)
 
   const sidecar = await getDshWebSidecar(context)
   const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : path, 'http://local')
@@ -220,9 +259,11 @@ export async function onRequest(context: any): Promise<Response> {
   try {
     return await proxy(context)
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn('[dsh-web] proxy failed:', error)
     return Response.json({
       error: 'DSH_WEB_PROXY_FAILED',
-      message: error instanceof Error ? error.message : String(error),
+      message,
     }, { status: 502 })
   }
 }

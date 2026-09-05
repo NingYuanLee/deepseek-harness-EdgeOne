@@ -1762,7 +1762,6 @@ window.__ModuleLoader__.load({
 		function ModelsSection(props) {
 			const { t } = props;
 			if (t === void 0) return null;
-			const docs = location.hostname.endsWith(".edgeone.dev") ? "https://pages.edgeone.ai/document/models" : "https://cloud.tencent.com/document/product/1552/132748";
 			return (0, react_jsx_runtime.jsxs)("div", {
 				className: ModelsSection_module_css_default["section"],
 				children: [
@@ -1772,11 +1771,11 @@ window.__ModuleLoader__.load({
 					}),
 					(0, react_jsx_runtime.jsx)("p", {
 						className: ModelsSection_module_css_default["intro"],
-						children: t("makersProvided")
+						children: t("officialProvided")
 					}),
 					(0, react_jsx_runtime.jsx)("a", {
 						className: ModelsSection_module_css_default["docsLink"],
-						href: docs,
+						href: "https://api-docs.deepseek.com/",
 						target: "_blank",
 						rel: "noopener noreferrer",
 						children: t("learnMore")
@@ -2462,7 +2461,7 @@ window.__ModuleLoader__.load({
 			nav: "Models",
 			title: "Models",
 			intro: "Enter your API keys to use models from the following providers.",
-			makersProvided: "Models are provided by EdgeOne Makers.",
+			officialProvided: "Models come from the official DeepSeek API. The key is read only from DEEPSEEK_API_KEY.",
 			learnMore: "Learn more",
 			edit: "Edit",
 			editProvider: "Edit {provider}",
@@ -2560,7 +2559,7 @@ window.__ModuleLoader__.load({
 			nav: "模型",
 			title: "模型",
 			intro: "填入各提供方的 API 密钥即可使用其模型。",
-			makersProvided: "模型由 EdgeOne Makers 提供。",
+			officialProvided: "模型由 DeepSeek 原厂提供，API Key 仅从环境变量 DEEPSEEK_API_KEY 读取。",
 			learnMore: "了解更多",
 			edit: "编辑",
 			editProvider: "编辑 {provider}",
