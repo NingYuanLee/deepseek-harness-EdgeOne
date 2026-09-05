@@ -9,8 +9,10 @@ import {
   readWorkspaceFile,
   runWorkspaceCommand,
   workspaceRoot,
+  writeWorkspaceBytes,
   writeWorkspaceFile,
 } from './_workspace.ts'
+import { buildDocx, buildPptx, buildXlsx } from './_office-files.ts'
 
 export {
   ALL_MAKERS_TOOLS,
@@ -133,11 +135,89 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
   })
 
   register('workspace_write_file', {
-    description: 'Create or replace one complete UTF-8 source file in the coding workspace. Use one call per file. Read Only mode asks the user before this runs.',
+    description: 'Create or replace one complete UTF-8 source file in the coding workspace. Use one call per file. Do not use this for .docx, .xlsx, or .pptx — those are binary Office packages; call workspace_write_docx, workspace_write_xlsx, or workspace_write_pptx instead. Read Only mode asks the user before this runs.',
     inputSchema: { path: z.string().min(1), content: z.string() },
   }, async ({ path, content }) => {
     try {
       return { content: [{ type: 'text', text: JSON.stringify(await writeWorkspaceFile(context, conversationId, path, content)) }] }
+    } catch (error) {
+      return { content: [{ type: 'text', text: error instanceof Error ? error.message : String(error) }], isError: true }
+    }
+  })
+
+  register('workspace_write_docx', {
+    description: 'Write a real Microsoft Word .docx (OOXML ZIP) that Word can open. Never write .docx with workspace_write_file or as HTML/Markdown/UTF-8. Path must end with .docx. Pass title, paragraphs, and optional tables.',
+    inputSchema: {
+      path: z.string().min(1),
+      title: z.string().optional(),
+      paragraphs: z.array(z.union([
+        z.string(),
+        z.object({
+          text: z.string(),
+          heading: z.number().int().min(1).max(3).optional(),
+        }),
+      ])).optional(),
+      tables: z.array(z.object({
+        headers: z.array(z.string()).optional(),
+        rows: z.array(z.array(z.string())),
+      })).optional(),
+    },
+  }, async ({ path, title, paragraphs, tables }) => {
+    try {
+      if (!/\.docx$/i.test(path)) throw new Error('path must end with .docx')
+      const bytes = buildDocx({
+        title,
+        paragraphs: paragraphs?.map(paragraph => (
+          typeof paragraph === 'string'
+            ? paragraph
+            : {
+                text: paragraph.text,
+                heading: paragraph.heading === 1 || paragraph.heading === 2 || paragraph.heading === 3
+                  ? paragraph.heading
+                  : undefined,
+              }
+        )),
+        tables,
+      })
+      return { content: [{ type: 'text', text: JSON.stringify(await writeWorkspaceBytes(context, conversationId, path, bytes)) }] }
+    } catch (error) {
+      return { content: [{ type: 'text', text: error instanceof Error ? error.message : String(error) }], isError: true }
+    }
+  })
+
+  register('workspace_write_xlsx', {
+    description: 'Write a real Microsoft Excel .xlsx (OOXML ZIP) that Excel can open. Never write .xlsx with workspace_write_file or as CSV/HTML/UTF-8. Path must end with .xlsx. Pass one or more sheets with rows of cells.',
+    inputSchema: {
+      path: z.string().min(1),
+      sheets: z.array(z.object({
+        name: z.string().optional(),
+        rows: z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))),
+      })).min(1),
+    },
+  }, async ({ path, sheets }) => {
+    try {
+      if (!/\.xlsx$/i.test(path)) throw new Error('path must end with .xlsx')
+      const bytes = buildXlsx({ sheets })
+      return { content: [{ type: 'text', text: JSON.stringify(await writeWorkspaceBytes(context, conversationId, path, bytes)) }] }
+    } catch (error) {
+      return { content: [{ type: 'text', text: error instanceof Error ? error.message : String(error) }], isError: true }
+    }
+  })
+
+  register('workspace_write_pptx', {
+    description: 'Write a real Microsoft PowerPoint .pptx (OOXML ZIP) that PowerPoint can open. Never write .pptx with workspace_write_file or as HTML/Markdown/UTF-8. Path must end with .pptx. Pass slides with a title and optional bullet points.',
+    inputSchema: {
+      path: z.string().min(1),
+      slides: z.array(z.object({
+        title: z.string().optional(),
+        bullets: z.array(z.string()).optional(),
+      })).min(1),
+    },
+  }, async ({ path, slides }) => {
+    try {
+      if (!/\.pptx$/i.test(path)) throw new Error('path must end with .pptx')
+      const bytes = buildPptx({ slides })
+      return { content: [{ type: 'text', text: JSON.stringify(await writeWorkspaceBytes(context, conversationId, path, bytes)) }] }
     } catch (error) {
       return { content: [{ type: 'text', text: error instanceof Error ? error.message : String(error) }], isError: true }
     }

@@ -306,7 +306,7 @@ async function writeProfilePatch(
     "  name: '@deepseek-ai/dsh-persona'",
     '  config:',
     '    text: >-',
-    '      You are a coding agent running on EdgeOne Makers. Use the mcp__edgeone__ tools for all file, command, and preview work. Never use local host filesystem or shell tools. Every Makers tool stays available. Permission modes only decide whether a call runs immediately or asks the user: Read Only auto-allows list and read; Workspace Write also auto-allows writes and sandbox commands; Full access auto-allows preview. If a tool needs a wider mode, call it normally — the user will be asked to approve. Inspect the workspace before editing, verify changes, and publish a preview when the project supports one.',
+    '      You are a coding agent running on EdgeOne Makers. Use the mcp__edgeone__ tools for all file, command, and preview work. Never use local host filesystem or shell tools. Every Makers tool stays available. Permission modes only decide whether a call runs immediately or asks the user: Read Only auto-allows list and read; Workspace Write also auto-allows writes, Office documents, and sandbox commands; Full access auto-allows preview. If a tool needs a wider mode, call it normally — the user will be asked to approve. Inspect the workspace before editing, verify changes, and publish a preview when the project supports one. To create Word, Excel, or PowerPoint files, call workspace_write_docx, workspace_write_xlsx, or workspace_write_pptx. Never write .docx, .xlsx, or .pptx with workspace_write_file or as HTML, Markdown, or UTF-8 text — Microsoft Office cannot open those.',
     '',
     '- id: makers-mcp-permission',
     '  name: ./makers-mcp-permission.mjs',

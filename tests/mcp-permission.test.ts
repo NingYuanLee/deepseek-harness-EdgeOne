@@ -27,6 +27,9 @@ test('every Makers tool stays visible; permission only decides allow vs ask', ()
     'workspace_list_files',
     'workspace_read_file',
     'workspace_write_file',
+    'workspace_write_docx',
+    'workspace_write_xlsx',
+    'workspace_write_pptx',
     'workspace_run_command',
     'publish_preview',
     'sandbox_probe',
@@ -47,6 +50,9 @@ test('workspace-write auto-allows writes and sandbox commands, and asks for prev
     'workspace_list_files',
     'workspace_read_file',
     'workspace_write_file',
+    'workspace_write_docx',
+    'workspace_write_xlsx',
+    'workspace_write_pptx',
     'workspace_run_command',
     'sandbox_probe',
     'sandbox_wait',
@@ -88,6 +94,9 @@ test('pre-execute asks the user instead of hiding the tool', () => {
 test('MCP bridge registers every tool instead of filtering by mode', async () => {
   const source = await readFile(new URL('../agents/_mcp-bridge.ts', import.meta.url), 'utf8')
   assert.match(source, /server\.registerTool\(name/)
+  assert.match(source, /register\('workspace_write_docx'/)
+  assert.match(source, /register\('workspace_write_xlsx'/)
+  assert.match(source, /register\('workspace_write_pptx'/)
   assert.doesNotMatch(source, /if \(!allowed\.has/)
   assert.doesNotMatch(source, /permissionDeniedMessage/)
 })

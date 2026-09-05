@@ -3,7 +3,8 @@ import { readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { listSandboxBrowserFiles, normalizeWorkspacePath, readSandboxBrowserFile, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceFile } from '../agents/_workspace.ts'
+import { buildDocx, buildPptx, buildXlsx } from '../agents/_office-files.ts'
+import { listSandboxBrowserFiles, normalizeWorkspacePath, readSandboxBrowserFile, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
 
 test('workspace paths stay relative and traversal-free', () => {
   assert.equal(normalizeWorkspacePath('src/App.tsx'), 'src/App.tsx')
@@ -132,6 +133,33 @@ test('sandbox browser lists and downloads files from the sidecar workspace', asy
   const file = await readSandboxBrowserFile(context, conversationId, 'notes/hello.txt')
   assert.equal(new TextDecoder().decode(file.bytes), 'hello sandbox')
   await assert.rejects(() => readSandboxBrowserFile(context, conversationId, '../secret'), /Invalid workspace file path/)
+  await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
+    recursive: true,
+    force: true,
+  })
+})
+
+test('writeWorkspaceFile rejects Office extensions so UTF-8 cannot fake them', async () => {
+  const conversationId = `office-reject-${Date.now()}`
+  const context = { store: { async getConversation() { return { metadata: {} } }, async updateConversation() {} } }
+  await assert.rejects(() => writeWorkspaceFile(context, conversationId, 'a.docx', '<html></html>'), /workspace_write_docx/)
+  await assert.rejects(() => writeWorkspaceFile(context, conversationId, 'b.xlsx', '1,2,3'), /workspace_write_xlsx/)
+  await assert.rejects(() => writeWorkspaceFile(context, conversationId, 'c.pptx', '# slide'), /workspace_write_pptx/)
+  await assert.rejects(() => writeWorkspaceBytes(context, conversationId, '../secret.pptx', new Uint8Array([1])), /Invalid workspace file path/)
+})
+
+test('office binaries stay on disk with the correct download MIME', async () => {
+  const conversationId = `office-bin-${Date.now()}`
+  const context = { store: { async getConversation() { return { metadata: {} } }, async updateConversation() {} } }
+  const docx = await writeWorkspaceBytes(context, conversationId, 'docs/报告.docx', buildDocx({ title: '报告' }))
+  const xlsx = await writeWorkspaceBytes(context, conversationId, 'docs/表.xlsx', buildXlsx({ sheets: [{ rows: [['中文']] }] }))
+  const pptx = await writeWorkspaceBytes(context, conversationId, 'docs/稿.pptx', buildPptx({ slides: [{ title: '汇报' }] }))
+  assert.ok(docx.bytes > 0 && xlsx.bytes > 0 && pptx.bytes > 0)
+  const downloaded = await readSandboxBrowserFile(context, conversationId, 'docs/稿.pptx')
+  assert.equal(downloaded.bytes[0], 0x50)
+  assert.equal(downloaded.contentType, 'application/vnd.openxmlformats-officedocument.presentationml.presentation')
+  const listed = await listSandboxBrowserFiles(context, conversationId)
+  assert.ok(listed.some(item => item.path === 'docs/报告.docx'))
   await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
     recursive: true,
     force: true,

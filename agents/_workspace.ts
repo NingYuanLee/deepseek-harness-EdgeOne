@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { isOfficeDocumentPath } from './_office-files.ts'
 
 const IGNORED_DIRECTORIES = new Set([
   '.git', '.next', '.cache', '.turbo', '.vite',
@@ -33,6 +34,9 @@ const CONTENT_TYPES: Record<string, string> = {
   yaml: 'text/yaml; charset=utf-8',
   yml: 'text/yaml; charset=utf-8',
   zip: 'application/zip',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
 
 interface WorkspaceSnapshotFile {
@@ -174,7 +178,7 @@ export async function hydrateSidecarWorkspace(
   try {
     const items = await listWorkspace(context, conversationId)
     for (const item of items) {
-      if (item.type !== 'file') continue
+      if (item.type !== 'file' || isOfficeDocumentPath(item.path)) continue
       const file = await readWorkspaceFile(context, conversationId, item.path)
       const dest = join(sidecarWorkspacePath, file.path)
       await mkdir(dirname(dest), { recursive: true })
@@ -492,6 +496,9 @@ export async function writeWorkspaceFile(
 ): Promise<{ path: string; bytes: number }> {
   const path = normalizeWorkspacePath(requestedPath)
   if (!path) throw new Error('Invalid workspace file path.')
+  if (isOfficeDocumentPath(path)) {
+    throw new Error('DOCX/XLSX/PPTX are binary Office files. Use workspace_write_docx, workspace_write_xlsx, or workspace_write_pptx instead of workspace_write_file.')
+  }
   if (usesDiskWorkspace(context)) {
     await ensureWorkspace(context, conversationId)
     await mirrorFileToSidecar(conversationId, path, content)
@@ -509,6 +516,21 @@ export async function writeWorkspaceFile(
     console.warn('[workspace] sidecar mirror failed:', error)
   }
   return { path, bytes: new TextEncoder().encode(content).byteLength }
+}
+
+export async function writeWorkspaceBytes(
+  context: any,
+  conversationId: string,
+  requestedPath: string,
+  bytes: Uint8Array,
+): Promise<{ path: string; bytes: number }> {
+  const path = normalizeWorkspacePath(requestedPath)
+  if (!path) throw new Error('Invalid workspace file path.')
+  await ensureWorkspace(context, conversationId)
+  const dest = diskFilePath(conversationId, path)
+  await mkdir(dirname(dest), { recursive: true })
+  await writeFile(dest, Buffer.from(bytes))
+  return { path, bytes: bytes.byteLength }
 }
 
 export async function runWorkspaceCommand(
