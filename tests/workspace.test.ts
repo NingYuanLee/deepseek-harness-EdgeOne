@@ -4,7 +4,25 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { buildDocx, buildPptx, buildXlsx } from '../agents/_office-files.ts'
-import { listSandboxBrowserFiles, normalizeWorkspacePath, readSandboxBrowserFile, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
+import { listSandboxBrowserFiles, matchSandboxFileReferences, normalizeWorkspacePath, readSandboxBrowserFile, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
+
+test('sandbox file references match one directory level like the composer @ menu', () => {
+  const items = [
+    { path: '小说.docx', name: '小说.docx', type: 'file' as const, depth: 0 },
+    { path: 'notes', name: 'notes', type: 'directory' as const, depth: 0 },
+    { path: 'notes/hello.txt', name: 'hello.txt', type: 'file' as const, depth: 1 },
+  ]
+  assert.deepEqual(matchSandboxFileReferences(items, ''), [
+    { path: '小说.docx', kind: 'file' },
+    { path: 'notes', kind: 'directory' },
+  ])
+  assert.deepEqual(matchSandboxFileReferences(items, '小'), [
+    { path: '小说.docx', kind: 'file' },
+  ])
+  assert.deepEqual(matchSandboxFileReferences(items, 'notes/'), [
+    { path: 'notes/hello.txt', kind: 'file' },
+  ])
+})
 
 test('workspace paths stay relative and traversal-free', () => {
   assert.equal(normalizeWorkspacePath('src/App.tsx'), 'src/App.tsx')

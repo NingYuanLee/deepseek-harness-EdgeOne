@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import WebSocket from 'ws'
 import { getDshWebSidecar, snapshotDshSettingsYaml, type DshWebSidecar } from '../_dsh-web-sidecar.ts'
-import { listSandboxBrowserFiles, readSandboxBrowserFile, sidecarWorkspaceRoot } from '../_workspace.ts'
+import { listSandboxBrowserFiles, matchSandboxFileReferences, readSandboxBrowserFile, sidecarWorkspaceRoot } from '../_workspace.ts'
 
 function requestPath(context: any): string {
   const value = typeof context.request?.url === 'string' ? context.request.url : '/api'
@@ -390,6 +390,36 @@ async function listSandboxFiles(context: any): Promise<Response> {
   })
 }
 
+function rpcQuery(body: unknown): string {
+  const envelope = asRecord(body)
+  const payload = asRecord(envelope?.payload)
+  const args = asRecord(payload?.args)
+  if (typeof args?.query === 'string') return args.query
+  if (typeof payload?.query === 'string') return payload.query
+  return ''
+}
+
+async function listSandboxFileReferences(context: any): Promise<Response> {
+  const conversationId = String(context.conversation_id || '').trim()
+  const rpcId = asRecord(context.request?.body)?.rpcId
+  if (!conversationId) {
+    return Response.json({
+      type: 'server-response',
+      rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
+      result: { ok: true, value: [] },
+    })
+  }
+  const items = await listSandboxBrowserFiles(context, conversationId)
+  return Response.json({
+    type: 'server-response',
+    rpcId: typeof rpcId === 'string' && rpcId.length > 0 ? rpcId : crypto.randomUUID(),
+    result: {
+      ok: true,
+      value: matchSandboxFileReferences(items, rpcQuery(context.request?.body)),
+    },
+  })
+}
+
 async function downloadSandboxFile(context: any): Promise<Response> {
   const conversationId = String(context.conversation_id || '').trim()
   if (!conversationId) {
@@ -579,6 +609,9 @@ async function proxy(context: any): Promise<Response> {
   if (path === '/api/directoryPicker/pick') return pickSandboxDirectory(context)
   if (path === '/api/sandbox/files') return listSandboxFiles(context)
   if (path === '/api/sandbox/file') return downloadSandboxFile(context)
+  if (path === '/api/fileReferences/list' || path === '/api/fileReferences.list') {
+    return listSandboxFileReferences(context)
+  }
   if (
     path === '/api/agent-teams/state'
     || path === '/api/agent-teams/plan'

@@ -876,6 +876,49 @@ function patchConversationBundle(source) {
     `					onRequestWorkspace: () => {}`,
     'composer does not open a workspace picker',
   )
+  next = mustReplace(
+    next,
+    `				this.shells.set(id, shell);
+				actx.effect(() => {
+					const offs = [
+						actx.on("slash/input-begin-command", (req) => shell.beginCommand(req.claim, req.span) ? true : void 0),`,
+    `				this.shells.set(id, shell);
+				const mentionFromSandbox = (event) => {
+					const detail = event?.detail && typeof event.detail === "object" ? event.detail : {};
+					const path = String(detail.path || "");
+					if (!path) return;
+					const mention = String(detail.mention || ( /\\s/.test(path) ? \`@"\${path}"\` : \`@\${path}\` ));
+					const label = String(detail.label || path.split("/").pop() || path);
+					const start = shell.projection.detectText.length;
+					if (shell.insertReference({
+						source: "reference",
+						ref: mention,
+						label,
+						appearance: "file",
+						clipboardText: mention
+					}, {
+						start,
+						end: start,
+						draftRev: shell.rev
+					})) event.preventDefault();
+				};
+				window.addEventListener("dsh-makers:insert-reference", mentionFromSandbox);
+				actx.effect(() => {
+					const offs = [
+						actx.on("slash/input-begin-command", (req) => shell.beginCommand(req.claim, req.span) ? true : void 0),`,
+    'sandbox file mention hook',
+  )
+  next = mustReplace(
+    next,
+    `					return () => {
+						for (const off of offs) off();
+						const drafts = shell.dispose();`,
+    `					return () => {
+						for (const off of offs) off();
+						window.removeEventListener("dsh-makers:insert-reference", mentionFromSandbox);
+						const drafts = shell.dispose();`,
+    'sandbox file mention hook cleanup',
+  )
   return next
 }
 

@@ -448,6 +448,26 @@ function bytesFromUnknown(value: unknown): Uint8Array {
 
 const BROWSER_HIDDEN = new Set(['.agent-teams', '.dsh'])
 
+export function matchSandboxFileReferences(
+  items: WorkspaceItem[],
+  query: string,
+): Array<{ path: string; kind: 'file' | 'directory' }> {
+  const needle = query.replaceAll('\\', '/')
+  const slash = needle.lastIndexOf('/')
+  const dir = slash >= 0 ? needle.slice(0, slash) : ''
+  const prefix = (slash >= 0 ? needle.slice(slash + 1) : needle).toLowerCase()
+  return items
+    .filter(item => {
+      const parent = item.path.includes('/') ? item.path.slice(0, item.path.lastIndexOf('/')) : ''
+      const name = item.path.slice(item.path.lastIndexOf('/') + 1)
+      return parent === dir && name.toLowerCase().startsWith(prefix)
+    })
+    .map(item => ({
+      path: item.path,
+      kind: item.type === 'directory' ? 'directory' as const : 'file' as const,
+    }))
+}
+
 export async function listSandboxBrowserFiles(
   context: any,
   conversationId: string,
