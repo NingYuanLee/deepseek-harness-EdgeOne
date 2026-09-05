@@ -599,6 +599,19 @@ export async function publishWorkspacePreview(
   context: any,
   conversationId: string,
 ): Promise<{ previewUrl: string; framework: string }> {
+  if (usesDiskWorkspace(context)) {
+    await ensureWorkspace(context, conversationId)
+    const items = await listWorkspace(context, conversationId)
+    const files = items.filter(item => item.type === 'file' && /\.html?$/i.test(item.path))
+    const preferred = files.find(item => /(?:^|\/)(?:index|resume|preview)\.html?$/i.test(item.path)) ?? files[0]
+    if (!preferred) {
+      throw new Error('Local preview needs an HTML file in the sandbox. Write one first, or download it from 沙箱文件.')
+    }
+    return {
+      previewUrl: `/api/sandbox/file?path=${encodeURIComponent(preferred.path)}`,
+      framework: 'static',
+    }
+  }
   const root = await ensureWorkspace(context, conversationId)
   const packageJsonExists = await context.sandbox.files.exists(`${root}/package.json`)
   const release = [

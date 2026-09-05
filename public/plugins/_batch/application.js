@@ -21834,14 +21834,56 @@ window.__ModuleLoader__.load({
 				t: props.t
 			}, approval.key);
 		}
+		function parseApprovalSpeech(text) {
+			const value = String(text ?? "").trim().replace(/[。！？.!?,，]/g, "");
+			if (!value) return null;
+			if (/^(允许一次|允许|同意|好的|好|可以|确认|ok|okay|yes|y|allow|approve)$/i.test(value)) return "allowed-once";
+			if (/^(拒绝|不允许|取消|否|不|no|n|reject|deny|cancel)$/i.test(value)) return "rejected";
+			return null;
+		}
+		function composerDraft() {
+			const editor = document.querySelector("[data-lexical-editor=true]");
+			return (editor instanceof HTMLElement ? editor.innerText : "").replace(/\u200b/g, "").trim();
+		}
+		function isSendControl(target) {
+			const button = target instanceof Element ? target.closest("button") : null;
+			if (!button) return false;
+			return /发送|Send/i.test(button.getAttribute("aria-label") || button.textContent || "");
+		}
 		function ApprovalFlow({ pending, detail, t }) {
 			const [answered, setAnswered] = (0, react.useState)(false);
+			const [speech, setSpeech] = (0, react.useState)("");
 			const answer = (outcome) => {
 				setAnswered(true);
 				pending.answer(outcome).catch(() => {
 					setAnswered(false);
 				});
 			};
+			(0, react.useEffect)(() => {
+				const settle = (text, event) => {
+					if (answered) return false;
+					const outcome = parseApprovalSpeech(text);
+					if (!outcome) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					answer(outcome);
+					return true;
+				};
+				const onKeyDown = (event) => {
+					if (event.key !== "Enter" || event.shiftKey) return;
+					if (settle(event.target instanceof HTMLInputElement ? event.target.value : composerDraft(), event)) return;
+				};
+				const onClick = (event) => {
+					if (!isSendControl(event.target)) return;
+					settle(composerDraft(), event);
+				};
+				window.addEventListener("keydown", onKeyDown, true);
+				window.addEventListener("click", onClick, true);
+				return () => {
+					window.removeEventListener("keydown", onKeyDown, true);
+					window.removeEventListener("click", onClick, true);
+				};
+			}, [answered]);
 			return (0, react_jsx_runtime.jsx)("div", {
 				className: ApprovalPanel_module_css_default.root,
 				"data-approval-key": pending.key,
@@ -21866,7 +21908,32 @@ window.__ModuleLoader__.load({
 								children: detail
 							})]
 						}),
-						(0, react_jsx_runtime.jsxs)("div", {
+						(0, react_jsx_runtime.jsx)("input", {
+							type: "text",
+							disabled: answered,
+							value: speech,
+							placeholder: t("speech.placeholder"),
+							"aria-label": t("speech.placeholder"),
+							style: {
+								margin: "0 16px 12px",
+								height: "36px",
+								padding: "0 10px",
+								border: "1px solid var(--dsw-alias-border-l2,#d0d7de)",
+								borderRadius: "10px",
+								font: "inherit",
+								fontSize: "13px"
+							},
+							onChange: (event) => {
+								setSpeech(event.target.value);
+							},
+							onKeyDown: (event) => {
+								if (event.key !== "Enter") return;
+								const outcome = parseApprovalSpeech(speech);
+								if (!outcome) return;
+								event.preventDefault();
+								answer(outcome);
+							}
+						}), (0, react_jsx_runtime.jsxs)("div", {
 							className: ApprovalPanel_module_css_default.actionRow,
 							children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 								variant: "outline",
@@ -22000,7 +22067,8 @@ window.__ModuleLoader__.load({
 			"detail.aria": "审批详情",
 			escalation: "工具 {toolName} 请求越权执行",
 			reject: "拒绝",
-			allowOnce: "允许一次"
+			allowOnce: "允许一次",
+			"speech.placeholder": "也可以输入：允许 / 拒绝"
 		};
 		/** English dictionary, checked against the Chinese key set. */
 		const en = {
@@ -22008,7 +22076,8 @@ window.__ModuleLoader__.load({
 			"detail.aria": "Approval details",
 			escalation: "Tool {toolName} requests privileged execution",
 			reject: "Reject",
-			allowOnce: "Allow once"
+			allowOnce: "Allow once",
+			"speech.placeholder": "Or type: allow / reject"
 		};
 		//#endregion
 		//#region lib/types/client/index.js

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { buildDocx, buildPptx, buildXlsx } from '../agents/_office-files.ts'
-import { listSandboxBrowserFiles, matchSandboxFileReferences, normalizeWorkspacePath, readSandboxBrowserFile, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
+import { listSandboxBrowserFiles, matchSandboxFileReferences, normalizeWorkspacePath, publishWorkspacePreview, readSandboxBrowserFile, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
 
 test('sandbox file references match one directory level like the composer @ menu', () => {
   const items = [
@@ -164,6 +164,19 @@ test('writeWorkspaceFile rejects Office extensions so UTF-8 cannot fake them', a
   await assert.rejects(() => writeWorkspaceFile(context, conversationId, 'b.xlsx', '1,2,3'), /workspace_write_xlsx/)
   await assert.rejects(() => writeWorkspaceFile(context, conversationId, 'c.pptx', '# slide'), /workspace_write_pptx/)
   await assert.rejects(() => writeWorkspaceBytes(context, conversationId, '../secret.pptx', new Uint8Array([1])), /Invalid workspace file path/)
+})
+
+test('local preview publishes a sandbox HTML URL instead of waiting on Linux sandbox hosts', async () => {
+  const conversationId = `preview-${Date.now()}`
+  const context = { store: { async getConversation() { return { metadata: {} } }, async updateConversation() {} } }
+  await writeWorkspaceFile(context, conversationId, 'resume.html', '<html><body>resume</body></html>')
+  const preview = await publishWorkspacePreview(context, conversationId)
+  assert.equal(preview.framework, 'static')
+  assert.match(preview.previewUrl, /\/api\/sandbox\/file\?path=resume\.html/)
+  await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
+    recursive: true,
+    force: true,
+  })
 })
 
 test('office binaries stay on disk with the correct download MIME', async () => {

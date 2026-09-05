@@ -723,6 +723,122 @@ function patchPermissionPresetsBundle(source) {
   )
 }
 
+function patchApprovalBundle(source) {
+  let next = mustReplace(
+    source,
+    '			allowOnce: "允许一次"\n		};',
+    '			allowOnce: "允许一次",\n			"speech.placeholder": "也可以输入：允许 / 拒绝"\n		};',
+    'approval zh speech',
+  )
+  next = mustReplace(
+    next,
+    '			allowOnce: "Allow once"\n		};',
+    '			allowOnce: "Allow once",\n			"speech.placeholder": "Or type: allow / reject"\n		};',
+    'approval en speech',
+  )
+  next = mustReplace(
+    next,
+    `		function ApprovalFlow({ pending, detail, t }) {
+			const [answered, setAnswered] = (0, react.useState)(false);
+			const answer = (outcome) => {
+				setAnswered(true);
+				pending.answer(outcome).catch(() => {
+					setAnswered(false);
+				});
+			};
+			return (0, react_jsx_runtime.jsx)("div", {
+				className: ApprovalPanel_module_css_default.root,
+				"data-approval-key": pending.key,`,
+    `		function parseApprovalSpeech(text) {
+			const value = String(text ?? "").trim().replace(/[。！？.!?,，]/g, "");
+			if (!value) return null;
+			if (/^(允许一次|允许|同意|好的|好|可以|确认|ok|okay|yes|y|allow|approve)$/i.test(value)) return "allowed-once";
+			if (/^(拒绝|不允许|取消|否|不|no|n|reject|deny|cancel)$/i.test(value)) return "rejected";
+			return null;
+		}
+		function composerDraft() {
+			const editor = document.querySelector("[data-lexical-editor=true]");
+			return (editor instanceof HTMLElement ? editor.innerText : "").replace(/\\u200b/g, "").trim();
+		}
+		function isSendControl(target) {
+			const button = target instanceof Element ? target.closest("button") : null;
+			if (!button) return false;
+			return /发送|Send/i.test(button.getAttribute("aria-label") || button.textContent || "");
+		}
+		function ApprovalFlow({ pending, detail, t }) {
+			const [answered, setAnswered] = (0, react.useState)(false);
+			const [speech, setSpeech] = (0, react.useState)("");
+			const answer = (outcome) => {
+				setAnswered(true);
+				pending.answer(outcome).catch(() => {
+					setAnswered(false);
+				});
+			};
+			(0, react.useEffect)(() => {
+				const settle = (text, event) => {
+					if (answered) return false;
+					const outcome = parseApprovalSpeech(text);
+					if (!outcome) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					answer(outcome);
+					return true;
+				};
+				const onKeyDown = (event) => {
+					if (event.key !== "Enter" || event.shiftKey) return;
+					if (settle(event.target instanceof HTMLInputElement ? event.target.value : composerDraft(), event)) return;
+				};
+				const onClick = (event) => {
+					if (!isSendControl(event.target)) return;
+					settle(composerDraft(), event);
+				};
+				window.addEventListener("keydown", onKeyDown, true);
+				window.addEventListener("click", onClick, true);
+				return () => {
+					window.removeEventListener("keydown", onKeyDown, true);
+					window.removeEventListener("click", onClick, true);
+				};
+			}, [answered]);
+			return (0, react_jsx_runtime.jsx)("div", {
+				className: ApprovalPanel_module_css_default.root,
+				"data-approval-key": pending.key,`,
+    'approval language settle',
+  )
+  return mustReplace(
+    next,
+    `						(0, react_jsx_runtime.jsxs)("div", {
+							className: ApprovalPanel_module_css_default.actionRow,`,
+    `						(0, react_jsx_runtime.jsx)("input", {
+							type: "text",
+							disabled: answered,
+							value: speech,
+							placeholder: t("speech.placeholder"),
+							"aria-label": t("speech.placeholder"),
+							style: {
+								margin: "0 16px 12px",
+								height: "36px",
+								padding: "0 10px",
+								border: "1px solid var(--dsw-alias-border-l2,#d0d7de)",
+								borderRadius: "10px",
+								font: "inherit",
+								fontSize: "13px"
+							},
+							onChange: (event) => {
+								setSpeech(event.target.value);
+							},
+							onKeyDown: (event) => {
+								if (event.key !== "Enter") return;
+								const outcome = parseApprovalSpeech(speech);
+								if (!outcome) return;
+								event.preventDefault();
+								answer(outcome);
+							}
+						}), (0, react_jsx_runtime.jsxs)("div", {
+							className: ApprovalPanel_module_css_default.actionRow,`,
+    'approval speech input',
+  )
+}
+
 function patchConversationBundle(source) {
   let next = source
   next = mustReplace(
@@ -1162,6 +1278,7 @@ function patchClientBundle(name, source) {
   if (name === '@deepseek-ai/dsh-api-gateway') return patchGatewayBundle(source)
   if (name === '@deepseek-ai/dsh-client-ui-agent-preset') return patchAgentPresetBundle(source)
   if (name === '@deepseek-ai/dsh-client-ui-permission-presets') return patchPermissionPresetsBundle(source)
+  if (name === '@deepseek-ai/dsh-client-ui-approval') return patchApprovalBundle(source)
   if (name === '@deepseek-ai/dsh-client-ui-conversation') return patchConversationBundle(source)
   if (name === '@deepseek-ai/dsh-client-ui-workspace') return patchWorkspaceBundle(source)
   if (name === '@deepseek-ai/dsh-client-ui-settings') return patchSettingsBundle(source)
