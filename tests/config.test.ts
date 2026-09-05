@@ -11,6 +11,12 @@ test('agent config packages the DSH Web sidecar and allows long runs', async () 
   assert.equal(config.agents.includeFiles, undefined)
 })
 
+test('production build publishes the prepared official Web shell instead of bundling it with Vite', async () => {
+  const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+  assert.match(pkg.scripts.build, /publish-static/)
+  assert.doesNotMatch(pkg.scripts.build, /vite build/)
+})
+
 test('lockfile installs from the public npm registry EdgeOne CI can reach', async () => {
   const lock = await readFile(new URL('../package-lock.json', import.meta.url), 'utf8')
   const npmrc = await readFile(new URL('../.npmrc', import.meta.url), 'utf8')

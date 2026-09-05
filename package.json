@@ -16,7 +16,7 @@
     "prepare:makers-runtime": "npm install --ignore-scripts --os=linux --cpu=x64 --include=optional --no-audit --no-fund && node scripts/restore-host-frontend-natives.mjs",
     "prepare:dsh-web": "node scripts/prepare-dsh-web.mjs && node scripts/generate-dsh-api-routes.mjs",
     "dev": "node --experimental-strip-types scripts/local-dev.mjs",
-    "build": "npm run prepare:dsh-web && vite build",
+    "build": "npm run prepare:dsh-web && node scripts/publish-static.mjs",
     "build:makers": "npm run build && npm run prepare:makers-runtime && node scripts/prune-agent-dependencies.mjs && node scripts/clean-agent-node.mjs",
     "test": "npm run prepare:dsh-web && node --experimental-strip-types --test tests/*.test.ts",
     "typecheck": "tsc --noEmit"
