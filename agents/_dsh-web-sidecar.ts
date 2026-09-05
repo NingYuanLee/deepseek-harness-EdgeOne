@@ -515,6 +515,37 @@ function attachedChild(): ChildProcess {
   } as unknown as ChildProcess
 }
 
+async function sidecarMcpUrl(home: string): Promise<string | undefined> {
+  try {
+    const text = await readFile(join(home, 'cordis.patch.yml'), 'utf8')
+    return text.match(/url:\s*"([^"]+\/mcp)"/)?.[1]
+  } catch {
+    return undefined
+  }
+}
+
+async function sidecarMcpHealthy(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(1_500),
+    })
+    return response.status > 0 && response.status < 500
+  } catch {
+    return false
+  }
+}
+
+async function discardStaleSidecar(home: string, pid: number): Promise<void> {
+  try {
+    process.kill(pid, 'SIGTERM')
+  } catch {
+    // The leftover sidecar may already have exited.
+  }
+  await clearSidecarRuntime(home)
+}
+
 async function attachExistingSidecar(
   context: any,
   conversationId: string,
@@ -522,7 +553,15 @@ async function attachExistingSidecar(
 ): Promise<DshWebSidecar | undefined> {
   const runtime = await readSidecarRuntime(home)
   if (!runtime || !pidAlive(runtime.pid)) return undefined
-  if (!await sidecarHealthy(runtime.port, runtime.cookie)) return undefined
+  if (!await sidecarHealthy(runtime.port, runtime.cookie)) {
+    await discardStaleSidecar(home, runtime.pid)
+    return undefined
+  }
+  const mcpUrl = await sidecarMcpUrl(home)
+  if (!mcpUrl || !await sidecarMcpHealthy(mcpUrl)) {
+    await discardStaleSidecar(home, runtime.pid)
+    return undefined
+  }
   const workspace = workspaceFromRuntime(runtime)
   const sidecar: DshWebSidecar = {
     conversationId,

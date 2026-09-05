@@ -101,6 +101,8 @@ test('sidecar defaults to official DeepSeek and reads the key from the environme
   assert.match(source, /sidecar-runtime\.json/)
   assert.match(source, /sidecar\.lock/)
   assert.match(source, /attachExistingSidecar/)
+  assert.match(source, /sidecarMcpHealthy/)
+  assert.match(source, /discardStaleSidecar/)
   assert.match(source, /owner: true/)
   assert.doesNotMatch(source, /displayName: EdgeOne Makers/)
   assert.doesNotMatch(source, /DEEPSEEK_BASE_URL: gateway\.baseUrl/)

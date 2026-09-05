@@ -12,7 +12,7 @@ import {
   writeWorkspaceBytes,
   writeWorkspaceFile,
 } from './_workspace.ts'
-import { buildDocx, buildPptx, buildXlsx } from './_office-files.ts'
+import { buildDocx, buildPptx, buildXlsx, officeCellText, officeHeadingLevel } from './_office-files.ts'
 
 export {
   ALL_MAKERS_TOOLS,
@@ -146,7 +146,7 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
   })
 
   register('workspace_write_docx', {
-    description: 'Write a real Microsoft Word .docx (OOXML ZIP) that Word can open. Never write .docx with workspace_write_file or as HTML/Markdown/UTF-8. Path must end with .docx. Pass title, paragraphs, and optional tables.',
+    description: 'Write a real Microsoft Word .docx (OOXML ZIP) that Word can open. Never write .docx with workspace_write_file or as HTML/Markdown/UTF-8. Path must end with .docx. Pass title, paragraphs, and optional tables. heading 1-3 is a title style; 0 or omit means body text.',
     inputSchema: {
       path: z.string().min(1),
       title: z.string().optional(),
@@ -154,12 +154,12 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
         z.string(),
         z.object({
           text: z.string(),
-          heading: z.number().int().min(1).max(3).optional(),
+          heading: z.union([z.number(), z.string()]).optional(),
         }),
       ])).optional(),
       tables: z.array(z.object({
-        headers: z.array(z.string()).optional(),
-        rows: z.array(z.array(z.string())),
+        headers: z.array(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+        rows: z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))),
       })).optional(),
     },
   }, async ({ path, title, paragraphs, tables }) => {
@@ -170,14 +170,12 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
         paragraphs: paragraphs?.map(paragraph => (
           typeof paragraph === 'string'
             ? paragraph
-            : {
-                text: paragraph.text,
-                heading: paragraph.heading === 1 || paragraph.heading === 2 || paragraph.heading === 3
-                  ? paragraph.heading
-                  : undefined,
-              }
+            : { text: paragraph.text, heading: officeHeadingLevel(paragraph.heading) }
         )),
-        tables,
+        tables: tables?.map(table => ({
+          headers: table.headers?.map(officeCellText),
+          rows: table.rows.map(row => row.map(officeCellText)),
+        })),
       })
       return { content: [{ type: 'text', text: JSON.stringify(await writeWorkspaceBytes(context, conversationId, path, bytes)) }] }
     } catch (error) {
@@ -210,13 +208,18 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
       path: z.string().min(1),
       slides: z.array(z.object({
         title: z.string().optional(),
-        bullets: z.array(z.string()).optional(),
+        bullets: z.array(z.union([z.string(), z.number()])).optional(),
       })).min(1),
     },
   }, async ({ path, slides }) => {
     try {
       if (!/\.pptx$/i.test(path)) throw new Error('path must end with .pptx')
-      const bytes = buildPptx({ slides })
+      const bytes = buildPptx({
+        slides: slides.map(slide => ({
+          title: slide.title,
+          bullets: slide.bullets?.map(item => String(item)),
+        })),
+      })
       return { content: [{ type: 'text', text: JSON.stringify(await writeWorkspaceBytes(context, conversationId, path, bytes)) }] }
     } catch (error) {
       return { content: [{ type: 'text', text: error instanceof Error ? error.message : String(error) }], isError: true }

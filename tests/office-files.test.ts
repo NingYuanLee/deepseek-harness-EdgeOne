@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { inflateRawSync } from 'node:zlib'
 import test from 'node:test'
-import { buildDocx, buildPptx, buildXlsx, isOfficeDocumentPath } from '../agents/_office-files.ts'
+import { buildDocx, buildPptx, buildXlsx, isOfficeDocumentPath, officeHeadingLevel } from '../agents/_office-files.ts'
 
 function unzipEntries(zip: Uint8Array): Map<string, string> {
   const buf = Buffer.from(zip)
@@ -67,6 +67,13 @@ test('pptx is a ZIP with Chinese slides PowerPoint can parse', () => {
   assert.match(entries.get('ppt/slides/slide1.xml') || '', /进展/)
   assert.match(entries.get('ppt/presentation.xml') || '', /sldId/)
   assert.ok(entries.has('ppt/theme/theme1.xml'))
+})
+
+test('office heading 0 is body text, not a validation error', () => {
+  assert.equal(officeHeadingLevel(0), undefined)
+  assert.equal(officeHeadingLevel('0'), undefined)
+  assert.equal(officeHeadingLevel(1), 1)
+  assert.equal(officeHeadingLevel('2'), 2)
 })
 
 test('office builders reject empty workbooks and decks', () => {

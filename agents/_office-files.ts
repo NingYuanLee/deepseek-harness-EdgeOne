@@ -395,3 +395,13 @@ export function buildPptx(presentation: PptxPresentation): Uint8Array {
 export function isOfficeDocumentPath(path: string): boolean {
   return /\.(docx|xlsx|pptx|ppt)$/i.test(path)
 }
+
+export function officeHeadingLevel(value: unknown): 1 | 2 | 3 | undefined {
+  const number = typeof value === 'number' ? value : typeof value === 'string' ? Number(value.trim()) : Number.NaN
+  return number === 1 || number === 2 || number === 3 ? number : undefined
+}
+
+export function officeCellText(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  return String(value)
+}
