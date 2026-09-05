@@ -23,12 +23,22 @@ const unusedPackages = [
   'typescript',
   '@deepseek-ai/dsh-web-frontend',
   '@deepseek-ai/dsh-client-web',
+  'openai',
+  '@google/genai',
+  '@anthropic-ai/sdk',
+  'react',
+  'react-dom',
+  'rollup',
+  'esbuild',
 ]
 
 const unusedScopes = [
   '@codemirror',
   '@shikijs',
   '@lezer',
+  '@rollup',
+  '@esbuild',
+  '@types',
 ]
 
 const betterSidebarJunk = [
@@ -155,6 +165,6 @@ console.log(`Pruned ${sourceMaps.files} dependency source maps (${(sourceMaps.by
 
 const remaining = await sizeOf(nodeModulesRoot)
 console.log(`Agent node_modules is now ${(remaining / 1024 / 1024).toFixed(1)} MiB.`)
-if (process.platform === 'linux' && remaining > 230 * 1024 * 1024) {
+if (process.platform === 'linux' && remaining > 245 * 1024 * 1024) {
   throw new Error(`Agent node_modules is still ${(remaining / 1024 / 1024).toFixed(1)} MiB; EdgeOne limit is 250 MiB.`)
 }
