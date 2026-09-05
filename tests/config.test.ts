@@ -4,11 +4,19 @@ import test from 'node:test'
 
 test('agent config packages the DSH Web sidecar and allows long runs', async () => {
   const config = JSON.parse(await readFile(new URL('../edgeone.json', import.meta.url), 'utf8'))
-  assert.match(String(config.installCommand), /registry\.npmmirror\.com/)
+  assert.match(String(config.installCommand), /npm install/)
   assert.equal(config.agents.timeout, 300)
   assert.ok(config.agents.externalNodeModules.includes('@deepseek-ai/dsh'))
   assert.ok(config.agents.externalNodeModules.every((name: string) => !name.includes('linux-x64')))
   assert.equal(config.agents.includeFiles, undefined)
+})
+
+test('lockfile installs from the public npm registry EdgeOne CI can reach', async () => {
+  const lock = await readFile(new URL('../package-lock.json', import.meta.url), 'utf8')
+  const npmrc = await readFile(new URL('../.npmrc', import.meta.url), 'utf8')
+  assert.match(npmrc, /registry\.npmjs\.org/)
+  assert.doesNotMatch(lock, /registry\.npmmirror\.com/)
+  assert.match(lock, /registry\.npmjs\.org/)
 })
 
 test('production preparation preserves Linux runtime natives while restoring host build and runtime natives', async () => {
