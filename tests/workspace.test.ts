@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
+import { readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import test from 'node:test'
-import { normalizeWorkspacePath, workspaceRoot, writeWorkspaceFile } from '../agents/_workspace.ts'
+import { normalizeWorkspacePath, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceFile } from '../agents/_workspace.ts'
 
 test('workspace paths stay relative and traversal-free', () => {
   assert.equal(normalizeWorkspacePath('src/App.tsx'), 'src/App.tsx')
@@ -99,4 +102,23 @@ test('writeWorkspaceFile still succeeds when snapshot persistence fails', async 
 
   assert.equal(result.path, 'index.html')
   assert.ok([...written.keys()].some(path => path.endsWith('/index.html')))
+})
+
+test('writeWorkspaceFile uses the sidecar disk workspace when sandbox is absent', async () => {
+  const conversationId = `disk-${Date.now()}`
+  const result = await writeWorkspaceFile(
+    { store: { async getConversation() { return { metadata: {} } }, async updateConversation() {} } },
+    conversationId,
+    'src/hello.txt',
+    'hello sandbox',
+  )
+  assert.equal(result.path, 'src/hello.txt')
+  assert.equal(
+    await readFile(join(sidecarWorkspaceRoot(conversationId), 'src', 'hello.txt'), 'utf8'),
+    'hello sandbox',
+  )
+  await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
+    recursive: true,
+    force: true,
+  })
 })

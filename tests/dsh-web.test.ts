@@ -10,24 +10,19 @@ test('build preparation installs the official DSH Web plugin graph', async () =>
   assert.match(html, /@deepseek-ai\/dsh-client-ui-trajectory/)
   assert.match(html, /@deepseek-ai\/dsh-client-ui-workspace/)
   assert.match(html, /@nanmicoder\/dsh-agent-teams/)
-  assert.match(html, /dsh-better-sidebar/)
+  assert.doesNotMatch(html, /dsh-better-sidebar/)
   assert.doesNotMatch(html, /@deepseek-ai\/dsh-client-ui-cordis/)
 })
 
-test('Agent Teams and the file sidebar are prepared into the Web roster', async () => {
+test('Agent Teams mounts on the official overlay and conversation cards', async () => {
   const teams = await readFile(
     new URL('../public/plugins/@nanmicoder/dsh-agent-teams/client.js', import.meta.url),
     'utf8',
   )
-  const sidebar = await readFile(
-    new URL('../public/plugins/dsh-better-sidebar/client.js', import.meta.url),
-    'utf8',
-  )
   assert.match(teams, /id: "agent-teams-activity"/)
   assert.match(teams, /ctx\.slots\.inject\("shell\.overlay"/)
-  assert.match(sidebar, /\/api\/sidebar\.proxy\?p=/)
-  assert.match(sidebar, /\/plugins\/dsh-better-sidebar\/client-\$\{name\}\.js/)
-  assert.doesNotMatch(sidebar, /fetch\(`\/sidebar\/api\/\$\{method\}`/)
+  assert.match(teams, /conversation\.chat\.node/)
+  assert.doesNotMatch(teams, /better-sidebar/)
 })
 
 test('Makers connection bundle uses SSE and injects conversation routing', async () => {
@@ -97,6 +92,8 @@ test('workspace UI shows a single cloud workspace without switching', async () =
   assert.match(conversation, /"hero.cloudWorkspace": "EdgeOne Sandbox"/)
   assert.match(conversation, /const inert = sessionId === void 0 && workspaces\.items\.length === 0;/)
   assert.match(conversation, /selectWorkspace\(only\.workspaceId\)/)
+  assert.match(workspace, /sandbox workspace adopt failed/)
+  assert.match(workspace, /this\.workspaces\.create\(\{ path \}\)/)
   assert.doesNotMatch(conversation, /hero.workspaceLocked/)
   assert.doesNotMatch(conversation, /"hero.cloudWorkspace": "云端工作区"/)
   assert.match(workspace, /"section.workspaces": "EdgeOne 沙箱"/)

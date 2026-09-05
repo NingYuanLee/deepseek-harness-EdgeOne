@@ -9,7 +9,6 @@ const modulesRoot = join(root, 'node_modules', '@deepseek-ai')
 const webDist = join(modulesRoot, 'dsh-web-frontend', 'dist')
 const extraClientPackages = [
   '@nanmicoder/dsh-agent-teams',
-  'dsh-better-sidebar',
 ]
 const excluded = new Set([
   // The Makers deployment has no native desktop directory chooser. The
@@ -893,6 +892,40 @@ function patchWorkspaceBundle(source) {
   )
   next = mustReplace(
     next,
+    `					const target = recentWorkspace(workspace.items, sessions.byId);
+					if (target === void 0) {
+						initial = "done";
+						return;
+					}`,
+    `					const target = recentWorkspace(workspace.items, sessions.byId);
+					if (target === void 0) {
+						if (workspace.items.length === 0) {
+							initial = "adopting";
+							this.pickDirectory().then((path) => {
+								if (disposed || !path) throw new Error("sandbox workspace path unavailable");
+								return this.workspaces.create({ path });
+							}).then((result) => {
+								if (disposed) return;
+								if (!result.ok) throw new Error(result.error.message);
+								return this.connectWorkspace(result.value.workspace.workspaceId);
+							}).then((sessionId) => {
+								if (disposed || sessionId === void 0) return;
+								if (this.sessions.list.getSnapshot().current === void 0) this.sessions.open(sessionId);
+								initial = "done";
+							}, (reason) => {
+								if (disposed) return;
+								initial = "waiting";
+								console.warn("sandbox workspace adopt failed:", reason);
+							});
+							return;
+						}
+						initial = "done";
+						return;
+					}`,
+    'auto-adopt empty sandbox workspace',
+  )
+  next = mustReplace(
+    next,
     `								children: [
 									(0, react_jsx_runtime.jsx)(ProjectRowItem, {
 										group,
@@ -956,74 +989,6 @@ function patchWorkspaceBundle(source) {
     'hide empty rail section header',
   )
   return next
-}
-
-function rewriteSidebarClientUrls(source, label) {
-  let next = source
-  if (next.includes('const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;')) {
-    next = mustReplace(
-      next,
-      'const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;',
-      'const CHUNK_URL = (name) => `/plugins/dsh-better-sidebar/client-${name}.js`;',
-      `${label} chunk url`,
-    )
-  }
-  if (next.includes('response = await fetch(`/sidebar/api/${method}`, {')) {
-    next = mustReplace(
-      next,
-      'response = await fetch(`/sidebar/api/${method}`, {',
-      'response = await fetch(`/api/sidebar.proxy?p=${encodeURIComponent(`/sidebar/api/${method}`)}`, {',
-      `${label} api fetch`,
-    )
-  }
-  if (next.includes('response = await fetch(`/sidebar/upload?${params.toString()}`, {')) {
-    next = mustReplace(
-      next,
-      'response = await fetch(`/sidebar/upload?${params.toString()}`, {',
-      'response = await fetch(`/api/sidebar.proxy?p=${encodeURIComponent("/sidebar/upload")}&${params.toString()}`, {',
-      `${label} upload fetch`,
-    )
-  }
-  if (next.includes('return `/sidebar/file?${params.toString()}`;')) {
-    next = mustReplace(
-      next,
-      'return `/sidebar/file?${params.toString()}`;',
-      'return `/api/sidebar.proxy?p=${encodeURIComponent("/sidebar/file")}&${params.toString()}`;',
-      `${label} file url`,
-    )
-  }
-  if (next.includes('return `${origin}/sidebar/file?${params.toString()}`;')) {
-    next = mustReplace(
-      next,
-      'return `${origin}/sidebar/file?${params.toString()}`;',
-      'return `${origin}/api/sidebar.proxy?p=${encodeURIComponent("/sidebar/file")}&${params.toString()}`;',
-      `${label} origin file url`,
-    )
-  }
-  if (next.includes('return `${HTML_ROUTE_PREFIX}${encodeURIComponent(sessionId)}/${unc ? "/" : ""}${segments.map(encodeURIComponent).join("/")}`;')) {
-    next = mustReplace(
-      next,
-      'return `${HTML_ROUTE_PREFIX}${encodeURIComponent(sessionId)}/${unc ? "/" : ""}${segments.map(encodeURIComponent).join("/")}`;',
-      'return `/api/sidebar.proxy?p=${encodeURIComponent(`${HTML_ROUTE_PREFIX}${encodeURIComponent(sessionId)}/${unc ? "/" : ""}${segments.map(encodeURIComponent).join("/")}`)}`;',
-      `${label} html url`,
-    )
-  }
-  return next
-}
-
-function patchBetterSidebarBundle(source) {
-  return rewriteSidebarClientUrls(source, 'better-sidebar')
-}
-
-async function copyBetterSidebarChunks() {
-  const lib = join(root, 'node_modules', 'dsh-better-sidebar', 'lib')
-  const destDir = join(publicDir, 'plugins', 'dsh-better-sidebar')
-  await mkdir(destDir, { recursive: true })
-  for (const name of ['editor', 'terminal', 'mermaid', 'locale']) {
-    let source
-    try { source = await readFile(join(lib, `client-${name}.js`), 'utf8') } catch { continue }
-    await writeFile(join(destDir, `client-${name}.js`), rewriteSidebarClientUrls(source, `better-sidebar ${name}`))
-  }
 }
 
 function patchLocaleBundle(source) {
@@ -1092,7 +1057,6 @@ function patchClientBundle(name, source) {
   if (name === '@deepseek-ai/dsh-client-ui-model-selection') return patchModelSelectionBundle(source)
   if (name === '@deepseek-ai/dsh-session-log-export') return patchSessionLogExportBundle(source)
   if (name === '@deepseek-ai/dsh-client-locale') return patchLocaleBundle(source)
-  if (name === 'dsh-better-sidebar') return patchBetterSidebarBundle(source)
   return source
 }
 
@@ -1375,7 +1339,6 @@ await rm(publicDir, { recursive: true, force: true })
 await mkdir(publicDir, { recursive: true })
 await cp(webDist, publicDir, { recursive: true })
 const { rows: entries, sources } = await clientPackages()
-await copyBetterSidebarChunks()
 if (entries.length < 30) throw new Error(`Expected the DSH Web roster, found only ${String(entries.length)} bundles.`)
 if (!sources.has(CLIENT_MODULES_ID)) throw new Error(`Expected ${CLIENT_MODULES_ID} in the DSH Web roster.`)
 const bootstrapIds = [CLIENT_MODULES_ID]

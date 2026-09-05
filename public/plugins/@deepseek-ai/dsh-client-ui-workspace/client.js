@@ -108,6 +108,26 @@ window.__ModuleLoader__.load({
 					}
 					const target = recentWorkspace(workspace.items, sessions.byId);
 					if (target === void 0) {
+						if (workspace.items.length === 0) {
+							initial = "adopting";
+							this.pickDirectory().then((path) => {
+								if (disposed || !path) throw new Error("sandbox workspace path unavailable");
+								return this.workspaces.create({ path });
+							}).then((result) => {
+								if (disposed) return;
+								if (!result.ok) throw new Error(result.error.message);
+								return this.connectWorkspace(result.value.workspace.workspaceId);
+							}).then((sessionId) => {
+								if (disposed || sessionId === void 0) return;
+								if (this.sessions.list.getSnapshot().current === void 0) this.sessions.open(sessionId);
+								initial = "done";
+							}, (reason) => {
+								if (disposed) return;
+								initial = "waiting";
+								console.warn("sandbox workspace adopt failed:", reason);
+							});
+							return;
+						}
 						initial = "done";
 						return;
 					}

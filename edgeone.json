@@ -54,7 +54,6 @@
       "@deepseek-ai/dsh-util-time",
       "@deepseek-ai/dsh-util-workspace-path",
       "@nanmicoder/dsh-agent-teams",
-      "dsh-better-sidebar",
       "zod"
     ],
     "sandbox": {

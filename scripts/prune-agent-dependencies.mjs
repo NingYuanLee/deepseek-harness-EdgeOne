@@ -1,4 +1,4 @@
-import { lstat, readdir, rm, readFile, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readdir, rm, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 
@@ -23,6 +23,7 @@ const unusedPackages = [
   'typescript',
   '@deepseek-ai/dsh-web-frontend',
   '@deepseek-ai/dsh-client-web',
+  'dsh-better-sidebar',
   'openai',
   '@google/genai',
   '@anthropic-ai/sdk',
@@ -39,18 +40,6 @@ const unusedScopes = [
   '@rollup',
   '@esbuild',
   '@types',
-]
-
-const betterSidebarJunk = [
-  'node_modules',
-  'src',
-  'README.md',
-  'README_EN.md',
-  'lib/client.js',
-  'lib/client-registry.js',
-  'lib/client-terminal.js',
-  'lib/client-editor.js',
-  'lib/client-mermaid.js',
 ]
 
 const nodePtyJunk = [
@@ -138,6 +127,17 @@ async function makeNodePtyLazy() {
   return true
 }
 
+async function writeSidecarFrontendStub() {
+  const dest = packagePath('@deepseek-ai/dsh-web-frontend')
+  await mkdir(join(dest, 'dist'), { recursive: true })
+  await writeFile(join(dest, 'package.json'), `${JSON.stringify({
+    name: '@deepseek-ai/dsh-web-frontend',
+    version: '0.1.2-rc.1',
+    type: 'module',
+  }, null, 2)}\n`)
+  await writeFile(join(dest, 'dist', 'index.html'), '<!DOCTYPE html><title>dsh</title>\n')
+}
+
 const patchedNodePty = await makeNodePtyLazy()
 console.log(`${patchedNodePty ? 'Patched' : 'Kept'} node-pty as a lazy Makers-only terminal dependency.`)
 
@@ -148,12 +148,11 @@ for (const name of unusedPackages) {
 for (const scope of unusedScopes) {
   removedBytes += await removePath(join(nodeModulesRoot, scope))
 }
-for (const relativePath of betterSidebarJunk) {
-  removedBytes += await removePath(join(nodeModulesRoot, 'dsh-better-sidebar', relativePath))
-}
 for (const relativePath of nodePtyJunk) {
   removedBytes += await removePath(join(nodePtyRoot, relativePath))
 }
+await writeSidecarFrontendStub()
+
 if (process.platform === 'linux') {
   removedBytes += await removePath(fileURLToPath(new URL('../public/', projectRoot)))
 }

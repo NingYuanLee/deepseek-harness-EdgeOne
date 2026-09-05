@@ -1,8 +1,10 @@
+import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { readFileSync } from 'node:fs'
-import { readFile, stat } from 'node:fs/promises'
-import { extname, join, normalize, sep } from 'node:path'
+import { access, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { dirname, extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { sidecarWorkspaceRoot, workspaceRoot } from '../agents/_workspace.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const publicDir = join(root, 'public')
@@ -74,6 +76,77 @@ async function readBody(req) {
   }
 }
 
+function localDiskSandbox(conversationId) {
+  const diskRoot = sidecarWorkspaceRoot(conversationId)
+  const logicalRoot = workspaceRoot(conversationId)
+  const toDisk = (logicalPath) => {
+    const normalized = String(logicalPath || '').replaceAll('\\', '/')
+    const rel = normalized === logicalRoot || normalized.startsWith(`${logicalRoot}/`)
+      ? normalized.slice(logicalRoot.length).replace(/^\//, '')
+      : normalized.replace(/^\//, '')
+    const safe = rel.split('/').filter(part => part && part !== '.' && part !== '..')
+    return safe.length > 0 ? join(diskRoot, ...safe) : diskRoot
+  }
+  return {
+    kind: 'local-disk',
+    files: {
+      async makeDir(path) {
+        await mkdir(toDisk(path), { recursive: true })
+      },
+      async write(path, content) {
+        const dest = toDisk(path)
+        await mkdir(dirname(dest), { recursive: true })
+        await writeFile(dest, content, 'utf8')
+      },
+      async read(path) {
+        return readFile(toDisk(path), 'utf8')
+      },
+      async exists(path) {
+        try {
+          await access(toDisk(path))
+          return true
+        } catch {
+          return false
+        }
+      },
+    },
+    commands: {
+      async run(command, options = {}) {
+        const cwd = options.cwd ? toDisk(options.cwd) : diskRoot
+        await mkdir(cwd, { recursive: true })
+        const trimmed = String(command || '').trim()
+        const printf = trimmed.match(/^printf\s+'([^']*)'$/)
+        if (printf) return { exitCode: 0, stdout: printf[1], stderr: '' }
+        return await new Promise((resolve, reject) => {
+          const child = spawn(command, { cwd, shell: true, windowsHide: true })
+          let stdout = ''
+          let stderr = ''
+          const timer = setTimeout(() => {
+            child.kill()
+            reject(new Error('local sandbox command timed out'))
+          }, Math.max(1, Number(options.timeout || 30)) * 1000)
+          child.stdout?.setEncoding('utf8')
+          child.stdout?.on('data', chunk => { stdout = `${stdout}${String(chunk)}`.slice(-20_000) })
+          child.stderr?.setEncoding('utf8')
+          child.stderr?.on('data', chunk => { stderr = `${stderr}${String(chunk)}`.slice(-20_000) })
+          child.once('error', error => {
+            clearTimeout(timer)
+            reject(error)
+          })
+          child.once('close', code => {
+            clearTimeout(timer)
+            resolve({ exitCode: code ?? 1, stdout, stderr })
+          })
+        })
+      },
+    },
+    getHost() {
+      return undefined
+    },
+    envdAccessToken: '',
+  }
+}
+
 function makersContext(req, body, env) {
   const url = new URL(req.url || '/', `http://127.0.0.1:${String(port)}`)
   const conversationId = String(req.headers['makers-conversation-id'] || body?.conversation_id || 'local-dev').trim()
@@ -81,7 +154,7 @@ function makersContext(req, body, env) {
     conversation_id: conversationId,
     env,
     store: memoryStore(conversationId),
-    sandbox: undefined,
+    sandbox: localDiskSandbox(conversationId),
     tools: { all: () => [] },
     utils: { abortActiveRun: async () => ({ aborted: false }) },
     request: {

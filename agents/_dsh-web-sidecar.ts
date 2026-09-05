@@ -342,9 +342,6 @@ async function writeProfilePatch(
     '        memberProvider: fork',
     `        memberModel: ${JSON.stringify(options.defaultModel)}`,
     '',
-    '    - id: better-sidebar',
-    "      name: 'dsh-better-sidebar'",
-    '',
     '    - id: makers-mcp',
     "      name: '@deepseek-ai/dsh-mcp-client'",
     '      config:',
@@ -422,6 +419,49 @@ async function callRpc(port: number, cookie: string, method: string, payload: Re
   throw lastError instanceof Error ? lastError : new Error(`DSH sidecar ${method} did not become ready`)
 }
 
+function extractWorkspaceId(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  const nested = record.workspace && typeof record.workspace === 'object'
+    ? record.workspace as Record<string, unknown>
+    : undefined
+  const id = record.workspaceId ?? nested?.workspaceId ?? record.id ?? nested?.id
+  return typeof id === 'string' && id ? id : undefined
+}
+
+async function adoptSandboxWorkspace(
+  port: number,
+  cookie: string,
+  workspacePath: string,
+  title: string,
+): Promise<void> {
+  let workspaceId: string | undefined
+  for (let attempt = 0; attempt < 2 && !workspaceId; attempt += 1) {
+    try {
+      workspaceId = extractWorkspaceId(
+        await callRpc(port, cookie, 'workspace.create', { request: { path: workspacePath } }),
+      )
+    } catch (error) {
+      console.warn('[dsh-web] workspace.create skipped:', error)
+      if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 500))
+    }
+  }
+  if (workspaceId) {
+    try {
+      await callRpc(port, cookie, 'workspace.rename', { request: { workspaceId, title } })
+    } catch (error) {
+      console.warn('[dsh-web] workspace.rename skipped:', error)
+    }
+    try {
+      await callRpc(port, cookie, 'session.create', { request: { workspaceId } })
+      return
+    } catch (error) {
+      console.warn('[dsh-web] session.create with workspaceId skipped:', error)
+    }
+  }
+  await callRpc(port, cookie, 'session.create', { request: { cwd: workspacePath } })
+}
+
 async function waitForReady(child: ChildProcess, port: number): Promise<string> {
   const deadline = Date.now() + 60_000
   let stdout = ''
@@ -468,7 +508,6 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     defaultModel,
   })
   await linkSidecarPackage(home, '@nanmicoder/dsh-agent-teams')
-  await linkSidecarPackage(home, 'dsh-better-sidebar')
 
   const dshBin = join(dirname(require.resolve('@deepseek-ai/dsh/package.json')), 'lib', 'bin.js')
   const child = spawn(process.execPath, [
@@ -504,27 +543,7 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     const workspacePath = join(home, 'workspace')
     await mkdir(workspacePath, { recursive: true })
     await hydrateSidecarWorkspace(context, conversationId, workspacePath)
-    let workspaceId: string | undefined
-    try {
-      const created = await callRpc(port, cookie, 'workspace.create', { request: { path: workspacePath } }) as
-        | { workspace?: { workspaceId?: string }; workspaceId?: string }
-        | undefined
-      workspaceId = created?.workspace?.workspaceId ?? created?.workspaceId
-    } catch (error) {
-      console.warn('[dsh-web] workspace.create skipped:', error)
-    }
-    if (typeof workspaceId === 'string' && workspaceId) {
-      try {
-        await callRpc(port, cookie, 'workspace.rename', {
-          request: { workspaceId, title: sandboxWorkspaceTitle(context) },
-        })
-      } catch (error) {
-        console.warn('[dsh-web] workspace.rename skipped:', error)
-      }
-      await callRpc(port, cookie, 'session.create', { request: { workspaceId } })
-    } else {
-      await callRpc(port, cookie, 'session.create', { request: { cwd: workspacePath } })
-    }
+    await adoptSandboxWorkspace(port, cookie, workspacePath, sandboxWorkspaceTitle(context))
   } catch (error) {
     await Promise.allSettled([gateway.close(), mcp.close()])
     throw error

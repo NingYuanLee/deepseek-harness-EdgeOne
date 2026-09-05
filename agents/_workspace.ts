@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -45,6 +46,102 @@ async function mirrorFileToSidecar(conversationId: string, path: string, content
   const dest = join(sidecarWorkspaceRoot(conversationId), path)
   await mkdir(dirname(dest), { recursive: true })
   await writeFile(dest, content, 'utf8')
+}
+
+function usesDiskWorkspace(context: any): boolean {
+  return !context?.sandbox?.files || context.sandbox.kind === 'local-disk'
+}
+
+function diskFilePath(conversationId: string, relativePath = ''): string {
+  return relativePath
+    ? join(sidecarWorkspaceRoot(conversationId), ...relativePath.split('/'))
+    : sidecarWorkspaceRoot(conversationId)
+}
+
+async function listWorkspaceFromDisk(conversationId: string): Promise<WorkspaceItem[]> {
+  const root = sidecarWorkspaceRoot(conversationId)
+  await mkdir(root, { recursive: true })
+  const items: WorkspaceItem[] = []
+  const walk = async (dir: string, rel: string, depth: number): Promise<void> => {
+    if (depth > 6 || items.length >= 400) return
+    let entries
+    try {
+      entries = await readdir(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      if (items.length >= 400) return
+      if (IGNORED_DIRECTORIES.has(entry.name) || IGNORED_FILES.has(entry.name)) continue
+      const childRel = rel ? `${rel}/${entry.name}` : entry.name
+      const childPath = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        items.push({
+          path: childRel,
+          name: entry.name,
+          type: 'directory',
+          depth: childRel.split('/').length - 1,
+        })
+        await walk(childPath, childRel, depth + 1)
+      } else if (entry.isFile()) {
+        let size: number | undefined
+        let mtime: number | undefined
+        try {
+          const info = await stat(childPath)
+          size = info.size
+          mtime = Math.round(info.mtimeMs)
+        } catch {
+          // The file can disappear between readdir and stat.
+        }
+        items.push({
+          path: childRel,
+          name: entry.name,
+          type: 'file',
+          depth: childRel.split('/').length - 1,
+          ...(size !== undefined ? { size } : {}),
+          ...(mtime !== undefined ? { mtime } : {}),
+        })
+      }
+    }
+  }
+  await walk(root, '', 0)
+  return items
+}
+
+async function runDiskCommand(
+  command: string,
+  cwd: string,
+  timeout: number,
+): Promise<{ command: string; stdout: string; stderr: string; exitCode: number }> {
+  await mkdir(cwd, { recursive: true })
+  const trimmed = command.trim()
+  const printf = trimmed.match(/^printf\s+'([^']*)'$/)
+  if (printf) return { command, stdout: printf[1], stderr: '', exitCode: 0 }
+  return await new Promise((resolve, reject) => {
+    const child = spawn(command, {
+      cwd,
+      shell: true,
+      windowsHide: true,
+    })
+    let stdout = ''
+    let stderr = ''
+    const timer = setTimeout(() => {
+      child.kill()
+      reject(new Error(`Command timed out after ${String(timeout)}s.`))
+    }, timeout * 1000)
+    child.stdout?.setEncoding('utf8')
+    child.stdout?.on('data', chunk => { stdout = `${stdout}${String(chunk)}`.slice(-20_000) })
+    child.stderr?.setEncoding('utf8')
+    child.stderr?.on('data', chunk => { stderr = `${stderr}${String(chunk)}`.slice(-20_000) })
+    child.once('error', error => {
+      clearTimeout(timer)
+      reject(error)
+    })
+    child.once('close', code => {
+      clearTimeout(timer)
+      resolve({ command, stdout, stderr, exitCode: code ?? 1 })
+    })
+  })
 }
 
 export async function hydrateSidecarWorkspace(
@@ -203,6 +300,22 @@ async function saveWorkspaceSnapshotFile(
 }
 
 export async function ensureWorkspace(context: any, conversationId: string): Promise<string> {
+  if (usesDiskWorkspace(context)) {
+    const diskRoot = sidecarWorkspaceRoot(conversationId)
+    await mkdir(diskRoot, { recursive: true })
+    const snapshot = await loadWorkspaceSnapshot(context, conversationId)
+    if (Object.keys(snapshot).length > 0) {
+      const existing = await listWorkspaceFromDisk(conversationId)
+      if (!existing.some(item => item.type === 'file')) {
+        for (const [path, file] of Object.entries(snapshot).slice(0, SNAPSHOT_FILE_LIMIT)) {
+          const normalized = normalizeWorkspacePath(path)
+          if (!normalized || typeof file?.content !== 'string') continue
+          await mirrorFileToSidecar(conversationId, normalized, file.content)
+        }
+      }
+    }
+    return workspaceRoot(conversationId)
+  }
   const root = workspaceRoot(conversationId)
   await context.sandbox.files.makeDir(root)
   await restoreWorkspaceSnapshot(context, conversationId, root)
@@ -210,6 +323,10 @@ export async function ensureWorkspace(context: any, conversationId: string): Pro
 }
 
 export async function listWorkspace(context: any, conversationId: string): Promise<WorkspaceItem[]> {
+  if (usesDiskWorkspace(context)) {
+    await ensureWorkspace(context, conversationId)
+    return listWorkspaceFromDisk(conversationId)
+  }
   const root = await ensureWorkspace(context, conversationId)
   const ignored = [...IGNORED_DIRECTORIES]
     .map(directory => `-path './${directory}'`)
@@ -260,6 +377,16 @@ export async function readWorkspaceFile(
 ): Promise<{ path: string; content: string; size: number; truncated: boolean }> {
   const path = normalizeWorkspacePath(requestedPath)
   if (!path) throw new Error('Invalid workspace file path.')
+  if (usesDiskWorkspace(context)) {
+    await ensureWorkspace(context, conversationId)
+    const content = await readFile(diskFilePath(conversationId, path), 'utf8')
+    const encoded = new TextEncoder().encode(content)
+    const truncated = encoded.byteLength > TEXT_PREVIEW_LIMIT
+    const visible = truncated
+      ? new TextDecoder().decode(encoded.slice(0, TEXT_PREVIEW_LIMIT))
+      : content
+    return { path, content: visible, size: encoded.byteLength, truncated }
+  }
   const root = await ensureWorkspace(context, conversationId)
   const result = await context.sandbox.files.read(`${root}/${path}`)
   const content = typeof result === 'string'
@@ -287,6 +414,12 @@ export async function writeWorkspaceFile(
 ): Promise<{ path: string; bytes: number }> {
   const path = normalizeWorkspacePath(requestedPath)
   if (!path) throw new Error('Invalid workspace file path.')
+  if (usesDiskWorkspace(context)) {
+    await ensureWorkspace(context, conversationId)
+    await mirrorFileToSidecar(conversationId, path, content)
+    await saveWorkspaceSnapshotFile(context, conversationId, path, content)
+    return { path, bytes: new TextEncoder().encode(content).byteLength }
+  }
   const root = await ensureWorkspace(context, conversationId)
   const parent = path.split('/').slice(0, -1).join('/')
   if (parent) await context.sandbox.files.makeDir(`${root}/${parent}`)
@@ -307,6 +440,14 @@ export async function runWorkspaceCommand(
   timeout = 120,
 ): Promise<{ command: string; stdout: string; stderr: string; exitCode: number }> {
   if (!command.trim()) throw new Error('Command must not be empty.')
+  if (usesDiskWorkspace(context)) {
+    await ensureWorkspace(context, conversationId)
+    return runDiskCommand(
+      command,
+      sidecarWorkspaceRoot(conversationId),
+      Math.min(Math.max(Math.round(timeout), 1), 300),
+    )
+  }
   const root = await ensureWorkspace(context, conversationId)
   const result = await context.sandbox.commands.run(command, {
     cwd: root,
