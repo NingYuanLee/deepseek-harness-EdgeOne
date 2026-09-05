@@ -4,12 +4,10 @@ window.__ModuleLoader__.load({
 		var module = { exports: {} };
 		var exports = module.exports;
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
-		let _deepseek_ai_dsh_client_web_react = require("@deepseek-ai/dsh-client-web-react");
 		let react_jsx_runtime = require("react/jsx-runtime");
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
-		let _deepseek_ai_dsh_client_runtime_client = require("@deepseek-ai/dsh-client-runtime/client");
-		let _deepseek_ai_dsh_client_schema_form = require("@deepseek-ai/dsh-client-schema-form");
+		let _deepseek_ai_dsh_client_store = require("@deepseek-ai/dsh-client-store");
 		//#region lib/types/client/apiKey.js
 		/**
 		* Browser-side judgement of a typed API key.
@@ -57,7 +55,7 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 		//#region \0dsh-css:/home/runner/work/deepseek-harness/deepseek-harness/packages/client/ui-settings-models/src/client/ModelsSection.module.css.mjs
-		const css$3 = ".zGbnIq_section{max-width:720px;color:var(--dsw-alias-label-primary);flex-direction:column;gap:12px;display:flex}.zGbnIq_title{color:var(--dsw-alias-label-primary);margin:0;font-size:16px;font-weight:500;line-height:24px}.zGbnIq_intro{color:var(--dsw-alias-label-tertiary);margin:0;font-size:14px;line-height:22px}.zGbnIq_notice{color:var(--dsw-alias-state-warn-label);margin:0;font-size:12px;line-height:18px}.zGbnIq_savedNotice{color:var(--dsw-alias-state-success-primary);margin:0;font-size:12px;line-height:18px}.zGbnIq_rows{flex-direction:column;gap:8px;margin:12px 0 0;padding:0;list-style:none;display:flex}.zGbnIq_rowCard{border:1px solid var(--dsw-alias-border-l2);border-radius:12px;flex-direction:column;gap:12px;padding:12px 14px;display:flex}.zGbnIq_rowHead{align-items:center;gap:10px;display:flex}.zGbnIq_rowIdentity{align-items:center;gap:6px;min-width:0;display:inline-flex}.zGbnIq_rowName{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:500;line-height:22px}.zGbnIq_rowTag{border:1px solid var(--dsw-alias-border-l3);color:var(--dsw-alias-label-secondary);border-radius:4px;flex:none;padding:1px 6px;font-size:11px;line-height:16px}.zGbnIq_credentialDot{box-sizing:border-box;border-radius:50%;flex:none;width:8px;height:8px;display:inline-block}.zGbnIq_credentialDotConfigured{background:var(--dsw-alias-state-success-primary)}.zGbnIq_credentialDotMissing{background:var(--dsw-alias-state-error-primary)}.zGbnIq_rowActions{align-items:center;gap:4px;margin-left:auto;display:inline-flex}.zGbnIq_primaryButton,.zGbnIq_secondaryButton,.zGbnIq_addButton{box-sizing:border-box;height:36px;font:inherit;cursor:pointer;border:none;border-radius:18px;justify-content:center;align-items:center;gap:4px;padding:0 14px;font-size:14px;line-height:22px;display:inline-flex}.zGbnIq_primaryButton{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}.zGbnIq_primaryButton:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}.zGbnIq_secondaryButton,.zGbnIq_addButton{border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);background:0 0}.zGbnIq_secondaryButton:hover:not(:disabled),.zGbnIq_addButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.zGbnIq_secondaryButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-solid)}.zGbnIq_dangerButton{box-sizing:border-box;height:36px;color:var(--dsw-alias-state-error-primary);font:inherit;cursor:pointer;background:0 0;border:none;border-radius:18px;justify-content:center;align-items:center;padding:0 14px;font-size:14px;line-height:22px;display:inline-flex}.zGbnIq_dangerButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger)}.zGbnIq_rowActions .zGbnIq_secondaryButton,.zGbnIq_rowActions .zGbnIq_dangerButton{border-radius:14px;height:28px;padding:0 10px;font-size:12px;line-height:18px}.zGbnIq_primaryButton:disabled,.zGbnIq_secondaryButton:disabled,.zGbnIq_dangerButton:disabled,.zGbnIq_addButton:disabled,.zGbnIq_linkButton:disabled,.zGbnIq_addModelButton:disabled{opacity:.4;cursor:default}.zGbnIq_primaryButton:focus-visible,.zGbnIq_secondaryButton:focus-visible,.zGbnIq_dangerButton:focus-visible,.zGbnIq_addButton:focus-visible,.zGbnIq_linkButton:focus-visible,.zGbnIq_addModelButton:focus-visible,.zGbnIq_iconButton:focus-visible,.zGbnIq_customizedSummary:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-border-l3);outline:none}.zGbnIq_editor{background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:14px;padding:14px 16px;display:flex}.zGbnIq_editorHeader{align-items:baseline;gap:8px;display:flex}.zGbnIq_editorTitle{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:500;line-height:22px}.zGbnIq_editorRoute{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.zGbnIq_field{flex-direction:column;gap:6px;display:flex}.zGbnIq_fieldLabel{color:var(--dsw-alias-label-secondary);align-items:center;gap:10px;font-size:12px;font-weight:500;line-height:18px;display:inline-flex}.zGbnIq_linkButton{box-sizing:border-box;height:28px;color:var(--dsw-alias-label-tertiary);font:inherit;cursor:pointer;background:0 0;border:none;border-radius:14px;align-items:center;padding:0 10px;font-size:12px;line-height:18px;display:inline-flex}.zGbnIq_linkButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary)}.zGbnIq_advancedHint{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}.zGbnIq_editorActions{justify-content:flex-end;gap:8px;display:flex}.zGbnIq_addBlock{flex-direction:column;gap:12px;display:flex}.zGbnIq_addActions{flex-wrap:wrap;gap:10px;display:flex}.zGbnIq_addButton{border:1px dashed var(--dsw-alias-border-l3);border-radius:12px;flex:1 1 0;gap:6px;min-width:180px;height:44px}.zGbnIq_addCard,.zGbnIq_setupCard{background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:14px;padding:14px 16px;list-style:none;display:flex}.zGbnIq_addCard .zGbnIq_editor,.zGbnIq_setupCard .zGbnIq_editor{background:0 0;padding:0}.zGbnIq_customized{border-top:1px solid var(--dsw-alias-border-l2);padding-top:10px}.zGbnIq_customizedSummary{cursor:pointer;width:fit-content;color:var(--dsw-alias-label-secondary);border-radius:6px;align-items:center;gap:6px;margin-left:-4px;padding:2px 4px;font-size:12px;font-weight:500;line-height:18px;list-style:none;display:flex}.zGbnIq_customizedSummary::-webkit-details-marker{display:none}.zGbnIq_customizedSummary:before{content:\"\";border-bottom:1.5px solid;border-right:1.5px solid;width:5px;height:5px;transition:transform .12s;transform:rotate(-45deg)translate(-1px,-1px)}.zGbnIq_customized[open]>.zGbnIq_customizedSummary:before{transform:rotate(45deg)translate(-1px,-1px)}.zGbnIq_customizedSummary:hover{color:var(--dsw-alias-label-primary)}.zGbnIq_customizedBody{flex-direction:column;gap:12px;padding-top:12px;display:flex}.zGbnIq_modelCatalog{border-top:1px solid var(--dsw-alias-border-l2);flex-direction:column;gap:10px;padding-top:12px;display:flex}.zGbnIq_modelCatalogHeading{flex-direction:column;gap:2px;display:flex}.zGbnIq_modelCatalogTitle{color:var(--dsw-alias-label-secondary);font-size:12px;font-weight:500;line-height:18px}.zGbnIq_modelCatalogMeta,.zGbnIq_modelEmpty{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}.zGbnIq_modelList{flex-direction:column;gap:8px;display:flex}.zGbnIq_modelListHead{justify-content:space-between;align-items:flex-start;gap:12px;display:flex}.zGbnIq_modelEntry{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:6px}.zGbnIq_modelRow{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto auto;align-items:center;gap:6px;display:grid}.zGbnIq_iconButton{box-sizing:border-box;width:28px;height:28px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:6px;justify-content:center;align-items:center;display:inline-flex}.zGbnIq_iconButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.zGbnIq_iconButton:disabled{cursor:default;opacity:.4}.zGbnIq_iconButtonDanger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary)}.zGbnIq_modelAdvanced{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;padding:8px 4px 2px;display:grid}.zGbnIq_modelField{flex-direction:column;gap:4px;display:flex}.zGbnIq_modelFieldLabel{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.zGbnIq_modelEmpty{border:1px dashed var(--dsw-alias-border-l3);text-align:center;border-radius:8px;padding:12px}.zGbnIq_addModelButton{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);height:28px;color:var(--dsw-alias-label-primary);font:inherit;cursor:pointer;background:0 0;border-radius:14px;align-self:flex-start;align-items:center;gap:4px;padding:0 10px;font-size:12px;line-height:18px;display:inline-flex}.zGbnIq_addModelButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.zGbnIq_input{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);width:100%;height:32px;font:inherit;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border-radius:8px;padding:0 10px;font-size:14px;line-height:22px}select.zGbnIq_input{cursor:pointer;max-width:240px}.zGbnIq_input:focus{border-color:var(--dsw-alias-brand-primary);outline:none}.zGbnIq_input::placeholder{color:var(--dsw-alias-label-dimmed)}.zGbnIq_input:disabled{opacity:.6;cursor:default}.zGbnIq_selectInput{appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");background-position:right 12px center;background-repeat:no-repeat;background-size:12px 12px;padding-right:32px}.zGbnIq_error{color:var(--dsw-alias-state-error-primary);margin:0;font-size:12px;line-height:18px}.zGbnIq_deleteDialog{width:min(480px,100%)}.zGbnIq_deleteConfirm:not(:disabled){border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}.zGbnIq_deleteConfirm:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger)}.zGbnIq_hiddenLabel{clip:rect(0 0 0 0);white-space:nowrap;width:1px;height:1px;position:absolute;overflow:hidden}@media (prefers-reduced-motion:reduce){.zGbnIq_customizedSummary:before{transition:none}}.zGbnIq_fetchDialog{--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);max-width:520px}.zGbnIq_candidateList{flex-direction:column;gap:2px;max-height:320px;margin:0;padding:0;list-style:none;display:flex;overflow-y:auto}.zGbnIq_candidate{border-radius:6px}.zGbnIq_candidateLabel{cursor:pointer;align-items:center;gap:8px;padding:6px 8px;display:flex}.zGbnIq_candidateId{font-family:var(--ds-font-family-code);overflow-wrap:anywhere;flex:auto;font-size:13px}.zGbnIq_docsLink{color:#3b63f6;font-size:14px;font-weight:600;line-height:22px;text-decoration:none;width:fit-content}.zGbnIq_docsLink:hover{text-decoration:underline}";
+		const css$3 = ".zGbnIq_section{max-width:720px;color:var(--dsw-alias-label-primary);flex-direction:column;gap:12px;display:flex}.zGbnIq_title{color:var(--dsw-alias-label-primary);margin:0;font-size:16px;font-weight:500;line-height:24px}.zGbnIq_intro{color:var(--dsw-alias-label-tertiary);margin:0;font-size:14px;line-height:22px}.zGbnIq_notice{color:var(--dsw-alias-state-warn-label);margin:0;font-size:12px;line-height:18px}.zGbnIq_savedNotice{color:var(--dsw-alias-state-success-primary);margin:0;font-size:12px;line-height:18px}.zGbnIq_rows{flex-direction:column;gap:8px;margin:12px 0 0;padding:0;list-style:none;display:flex}.zGbnIq_rowCard{border:.5px solid var(--dsw-alias-border-l4);border-radius:16px;flex-direction:column;gap:12px;padding:12px 14px;display:flex}.zGbnIq_rowHead{align-items:center;gap:10px;display:flex}.zGbnIq_rowIdentity{align-items:center;gap:6px;min-width:0;display:inline-flex}.zGbnIq_rowName{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:500;line-height:22px}.zGbnIq_rowTag{border:.5px solid var(--dsw-alias-border-l3);color:var(--dsw-alias-label-secondary);border-radius:4px;flex:none;padding:1px 6px;font-size:11px;line-height:16px}.zGbnIq_credentialDot{box-sizing:border-box;corner-shape:round;border-radius:50%;flex:none;width:8px;height:8px;display:inline-block}.zGbnIq_credentialDotConfigured{background:var(--dsw-alias-state-success-primary)}.zGbnIq_credentialDotMissing{background:var(--dsw-alias-state-error-primary)}.zGbnIq_rowActions{align-items:center;gap:4px;margin-left:auto;display:inline-flex}.zGbnIq_primaryButton,.zGbnIq_secondaryButton,.zGbnIq_addButton{box-sizing:border-box;height:36px;font:inherit;cursor:pointer;border:none;border-radius:18px;justify-content:center;align-items:center;gap:4px;padding:0 14px;font-size:14px;line-height:22px;display:inline-flex}.zGbnIq_primaryButton{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}.zGbnIq_primaryButton:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}.zGbnIq_secondaryButton,.zGbnIq_addButton{border:.5px solid var(--dsw-alias-border-l3);color:var(--dsw-alias-label-primary);background:0 0}.zGbnIq_secondaryButton:hover:not(:disabled),.zGbnIq_addButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.zGbnIq_secondaryButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-solid)}.zGbnIq_dangerButton{box-sizing:border-box;height:36px;color:var(--dsw-alias-state-error-primary);font:inherit;cursor:pointer;background:0 0;border:none;border-radius:18px;justify-content:center;align-items:center;padding:0 14px;font-size:14px;line-height:22px;display:inline-flex}.zGbnIq_dangerButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger)}.zGbnIq_rowActions .zGbnIq_secondaryButton,.zGbnIq_rowActions .zGbnIq_dangerButton{border-radius:14px;height:28px;padding:0 10px;font-size:12px;line-height:18px}.zGbnIq_primaryButton:disabled,.zGbnIq_secondaryButton:disabled,.zGbnIq_dangerButton:disabled,.zGbnIq_addButton:disabled,.zGbnIq_linkButton:disabled,.zGbnIq_addModelButton:disabled{opacity:.4;cursor:default}.zGbnIq_primaryButton:focus-visible,.zGbnIq_secondaryButton:focus-visible,.zGbnIq_dangerButton:focus-visible,.zGbnIq_addButton:focus-visible,.zGbnIq_linkButton:focus-visible,.zGbnIq_addModelButton:focus-visible,.zGbnIq_iconButton:focus-visible,.zGbnIq_customizedSummary:focus-visible{box-shadow:0 0 0 2px var(--dsw-alias-border-l3);outline:none}.zGbnIq_editor{background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:14px;padding:14px 16px;display:flex}.zGbnIq_editorHeader{align-items:baseline;gap:8px;display:flex}.zGbnIq_editorTitle{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:500;line-height:22px}.zGbnIq_editorRoute{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.zGbnIq_field{flex-direction:column;gap:6px;display:flex}.zGbnIq_fieldLabel{color:var(--dsw-alias-label-secondary);align-items:center;gap:10px;font-size:12px;font-weight:500;line-height:18px;display:inline-flex}.zGbnIq_linkButton{box-sizing:border-box;height:28px;color:var(--dsw-alias-label-tertiary);font:inherit;cursor:pointer;background:0 0;border:none;border-radius:14px;align-items:center;padding:0 10px;font-size:12px;line-height:18px;display:inline-flex}.zGbnIq_linkButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary)}.zGbnIq_advancedHint{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}.zGbnIq_editorActions{justify-content:flex-end;gap:8px;display:flex}.zGbnIq_addBlock{flex-direction:column;gap:12px;display:flex}.zGbnIq_addActions{flex-wrap:wrap;gap:10px;display:flex}.zGbnIq_addButton{border:1px dashed var(--dsw-alias-border-l3);border-radius:16px;flex:1 1 0;gap:6px;min-width:180px;height:44px}.zGbnIq_addCard,.zGbnIq_setupCard{background:var(--dsw-alias-bg-module-platform);border-radius:12px;flex-direction:column;gap:14px;padding:14px 16px;list-style:none;display:flex}.zGbnIq_addCard .zGbnIq_editor,.zGbnIq_setupCard .zGbnIq_editor{background:0 0;padding:0}.zGbnIq_customized{border-top:.5px solid var(--dsw-alias-border-l2);padding-top:10px}.zGbnIq_customizedSummary{cursor:pointer;width:fit-content;color:var(--dsw-alias-label-secondary);border-radius:6px;align-items:center;gap:6px;margin-left:-4px;padding:2px 4px;font-size:12px;font-weight:500;line-height:18px;list-style:none;display:flex}.zGbnIq_customizedSummary::-webkit-details-marker{display:none}.zGbnIq_customizedSummary:before{content:\"\";border-bottom:1.5px solid;border-right:1.5px solid;width:5px;height:5px;transition:transform .12s;transform:rotate(-45deg)translate(-1px,-1px)}.zGbnIq_customized[open]>.zGbnIq_customizedSummary:before{transform:rotate(45deg)translate(-1px,-1px)}.zGbnIq_customizedSummary:hover{color:var(--dsw-alias-label-primary)}.zGbnIq_customizedBody{flex-direction:column;gap:12px;padding-top:12px;display:flex}.zGbnIq_modelCatalog{border-top:.5px solid var(--dsw-alias-border-l2);flex-direction:column;gap:10px;padding-top:12px;display:flex}.zGbnIq_modelCatalogHeading{flex-direction:column;gap:2px;display:flex}.zGbnIq_modelCatalogTitle{color:var(--dsw-alias-label-secondary);font-size:12px;font-weight:500;line-height:18px}.zGbnIq_modelCatalogMeta,.zGbnIq_modelEmpty{color:var(--dsw-alias-label-tertiary);margin:0;font-size:12px;line-height:18px}.zGbnIq_modelList{flex-direction:column;gap:8px;display:flex}.zGbnIq_modelListHead{justify-content:space-between;align-items:flex-start;gap:12px;display:flex}.zGbnIq_modelEntry{border:.5px solid var(--dsw-alias-border-l4);border-radius:10px;padding:6px}.zGbnIq_modelRow{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto auto;align-items:center;gap:6px;display:grid}.zGbnIq_iconButton{box-sizing:border-box;width:28px;height:28px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:6px;justify-content:center;align-items:center;display:inline-flex}.zGbnIq_iconButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.zGbnIq_iconButton:disabled{cursor:default;opacity:.4}.zGbnIq_iconButtonDanger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary)}.zGbnIq_modelAdvanced{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;padding:8px 4px 2px;display:grid}.zGbnIq_modelField{flex-direction:column;gap:4px;display:flex}.zGbnIq_modelFieldLabel{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}.zGbnIq_modelEmpty{border:1px dashed var(--dsw-alias-border-l3);text-align:center;border-radius:8px;padding:12px}.zGbnIq_addModelButton{box-sizing:border-box;border:.5px solid var(--dsw-alias-border-l3);height:28px;color:var(--dsw-alias-label-primary);font:inherit;cursor:pointer;background:0 0;border-radius:14px;align-self:flex-start;align-items:center;gap:4px;padding:0 10px;font-size:12px;line-height:18px;display:inline-flex}.zGbnIq_addModelButton:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.zGbnIq_input{box-sizing:border-box;border:.5px solid var(--dsw-alias-border-l4);width:100%;height:32px;font:inherit;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border-radius:8px;padding:0 10px;font-size:14px;line-height:22px}select.zGbnIq_input{cursor:pointer;max-width:240px}.zGbnIq_input:focus{border-color:var(--dsw-alias-brand-primary);outline:none}.zGbnIq_input::placeholder{color:var(--dsw-alias-label-dimmed)}.zGbnIq_input:disabled{opacity:.6;cursor:default}.zGbnIq_selectInput{appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");background-position:right 12px center;background-repeat:no-repeat;background-size:12px 12px;padding-right:32px}.zGbnIq_error{color:var(--dsw-alias-state-error-primary);margin:0;font-size:12px;line-height:18px}.zGbnIq_deleteDialog{width:min(480px,100%)}.zGbnIq_deleteConfirm:not(:disabled){border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}.zGbnIq_deleteConfirm:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger)}.zGbnIq_hiddenLabel{clip:rect(0 0 0 0);white-space:nowrap;width:1px;height:1px;position:absolute;overflow:hidden}@media (prefers-reduced-motion:reduce){.zGbnIq_customizedSummary:before,.zGbnIq_switchThumb{transition:none}}.zGbnIq_fetchDialog{--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);max-width:520px}.zGbnIq_candidateToolbar{align-items:center;gap:8px;margin-bottom:6px;display:flex}.zGbnIq_candidateSearch{flex:240px;min-width:0}.zGbnIq_candidateList{flex-direction:column;gap:2px;max-height:320px;margin:0;padding:0;list-style:none;display:flex;overflow-y:auto}.zGbnIq_candidate{border-radius:6px}.zGbnIq_candidateLabel{cursor:pointer;align-items:center;gap:8px;padding:6px 8px;display:flex}.zGbnIq_candidateId{font-family:var(--ds-font-family-code);overflow-wrap:anywhere;flex:auto;font-size:13px}.zGbnIq_docsLink{color:#3b63f6;font-size:14px;font-weight:600;line-height:22px;text-decoration:none;width:fit-content}.zGbnIq_docsLink:hover{text-decoration:underline}.zGbnIq_candidateEmpty{color:var(--dsw-alias-label-secondary);text-align:center;margin:24px 0;font-size:13px;line-height:20px}";
 		const tagId$3 = "@deepseek-ai/dsh-client-ui-settings-models/ModelsSection.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$3) + "]") === null) {
 			const tag = document.createElement("style");
@@ -67,68 +65,72 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var ModelsSection_module_css_default = {
-			"iconButtonDanger": "zGbnIq_iconButtonDanger",
+			"addActions": "zGbnIq_addActions",
+			"addBlock": "zGbnIq_addBlock",
+			"addButton": "zGbnIq_addButton",
+			"addCard": "zGbnIq_addCard",
+			"addModelButton": "zGbnIq_addModelButton",
+			"advancedHint": "zGbnIq_advancedHint",
+			"candidate": "zGbnIq_candidate",
+			"candidateEmpty": "zGbnIq_candidateEmpty",
+			"candidateId": "zGbnIq_candidateId",
+			"candidateLabel": "zGbnIq_candidateLabel",
+			"candidateList": "zGbnIq_candidateList",
+			"candidateSearch": "zGbnIq_candidateSearch",
+			"candidateToolbar": "zGbnIq_candidateToolbar",
+			"credentialDot": "zGbnIq_credentialDot",
+			"credentialDotConfigured": "zGbnIq_credentialDotConfigured",
+			"credentialDotMissing": "zGbnIq_credentialDotMissing",
+			"customized": "zGbnIq_customized",
+			"customizedBody": "zGbnIq_customizedBody",
+			"customizedSummary": "zGbnIq_customizedSummary",
+			"dangerButton": "zGbnIq_dangerButton",
+			"deleteConfirm": "zGbnIq_deleteConfirm",
+			"deleteDialog": "zGbnIq_deleteDialog",
+			"editor": "zGbnIq_editor",
 			"editorActions": "zGbnIq_editorActions",
+			"editorHeader": "zGbnIq_editorHeader",
+			"editorRoute": "zGbnIq_editorRoute",
+			"editorTitle": "zGbnIq_editorTitle",
 			"error": "zGbnIq_error",
+			"fetchDialog": "zGbnIq_fetchDialog",
+			"field": "zGbnIq_field",
+			"fieldLabel": "zGbnIq_fieldLabel",
+			"hiddenLabel": "zGbnIq_hiddenLabel",
+			"iconButton": "zGbnIq_iconButton",
+			"iconButtonDanger": "zGbnIq_iconButtonDanger",
+			"input": "zGbnIq_input",
+			"intro": "zGbnIq_intro",
+			"linkButton": "zGbnIq_linkButton",
+			"modelAdvanced": "zGbnIq_modelAdvanced",
+			"modelCatalog": "zGbnIq_modelCatalog",
+			"modelCatalogHeading": "zGbnIq_modelCatalogHeading",
+			"modelCatalogMeta": "zGbnIq_modelCatalogMeta",
+			"modelCatalogTitle": "zGbnIq_modelCatalogTitle",
+			"modelEmpty": "zGbnIq_modelEmpty",
+			"modelEntry": "zGbnIq_modelEntry",
+			"modelField": "zGbnIq_modelField",
+			"modelFieldLabel": "zGbnIq_modelFieldLabel",
+			"modelList": "zGbnIq_modelList",
+			"modelListHead": "zGbnIq_modelListHead",
 			"modelRow": "zGbnIq_modelRow",
+			"notice": "zGbnIq_notice",
+			"primaryButton": "zGbnIq_primaryButton",
+			"rowActions": "zGbnIq_rowActions",
+			"rowCard": "zGbnIq_rowCard",
+			"rowHead": "zGbnIq_rowHead",
+			"rowIdentity": "zGbnIq_rowIdentity",
+			"rowName": "zGbnIq_rowName",
+			"rowTag": "zGbnIq_rowTag",
+			"rows": "zGbnIq_rows",
+			"savedNotice": "zGbnIq_savedNotice",
+			"secondaryButton": "zGbnIq_secondaryButton",
 			"section": "zGbnIq_section",
 			"docsLink": "zGbnIq_docsLink",
-			"linkButton": "zGbnIq_linkButton",
-			"hiddenLabel": "zGbnIq_hiddenLabel",
-			"rows": "zGbnIq_rows",
-			"candidateLabel": "zGbnIq_candidateLabel",
-			"input": "zGbnIq_input",
-			"notice": "zGbnIq_notice",
-			"fetchDialog": "zGbnIq_fetchDialog",
-			"candidate": "zGbnIq_candidate",
-			"customizedBody": "zGbnIq_customizedBody",
-			"modelListHead": "zGbnIq_modelListHead",
-			"deleteDialog": "zGbnIq_deleteDialog",
-			"modelEntry": "zGbnIq_modelEntry",
-			"addModelButton": "zGbnIq_addModelButton",
-			"modelCatalogTitle": "zGbnIq_modelCatalogTitle",
-			"editorRoute": "zGbnIq_editorRoute",
-			"rowCard": "zGbnIq_rowCard",
-			"rowName": "zGbnIq_rowName",
-			"modelAdvanced": "zGbnIq_modelAdvanced",
-			"primaryButton": "zGbnIq_primaryButton",
-			"intro": "zGbnIq_intro",
-			"rowIdentity": "zGbnIq_rowIdentity",
-			"modelCatalog": "zGbnIq_modelCatalog",
-			"editorHeader": "zGbnIq_editorHeader",
-			"credentialDot": "zGbnIq_credentialDot",
-			"dangerButton": "zGbnIq_dangerButton",
-			"modelFieldLabel": "zGbnIq_modelFieldLabel",
-			"field": "zGbnIq_field",
-			"credentialDotConfigured": "zGbnIq_credentialDotConfigured",
-			"addBlock": "zGbnIq_addBlock",
-			"deleteConfirm": "zGbnIq_deleteConfirm",
-			"modelEmpty": "zGbnIq_modelEmpty",
-			"editor": "zGbnIq_editor",
-			"addButton": "zGbnIq_addButton",
-			"candidateList": "zGbnIq_candidateList",
-			"secondaryButton": "zGbnIq_secondaryButton",
-			"modelCatalogMeta": "zGbnIq_modelCatalogMeta",
-			"modelField": "zGbnIq_modelField",
-			"customized": "zGbnIq_customized",
 			"selectInput": "zGbnIq_selectInput",
-			"iconButton": "zGbnIq_iconButton",
 			"setupCard": "zGbnIq_setupCard",
-			"fieldLabel": "zGbnIq_fieldLabel",
-			"rowActions": "zGbnIq_rowActions",
-			"addCard": "zGbnIq_addCard",
-			"candidateId": "zGbnIq_candidateId",
-			"modelCatalogHeading": "zGbnIq_modelCatalogHeading",
-			"credentialDotMissing": "zGbnIq_credentialDotMissing",
-			"rowTag": "zGbnIq_rowTag",
-			"customizedSummary": "zGbnIq_customizedSummary",
-			"addActions": "zGbnIq_addActions",
-			"editorTitle": "zGbnIq_editorTitle",
-			"savedNotice": "zGbnIq_savedNotice",
-			"modelList": "zGbnIq_modelList",
-			"advancedHint": "zGbnIq_advancedHint",
-			"title": "zGbnIq_title",
-			"rowHead": "zGbnIq_rowHead"
+			"switchThumb": "zGbnIq_switchThumb",
+			"title": "zGbnIq_title"
 		};
 		//#endregion
 		//#region lib/types/client/EditorFooter.js
@@ -146,13 +148,13 @@ window.__ModuleLoader__.load({
 					className: ModelsSection_module_css_default["secondaryButton"],
 					disabled: props.busy,
 					onClick: props.onCancel,
-					children: t(props.cancelLabel ?? "cancel")
+					children: t(props.cancelLabelKey ?? "cancel")
 				}), (0, react_jsx_runtime.jsx)("button", {
 					type: "button",
 					className: ModelsSection_module_css_default["primaryButton"],
 					disabled: props.submitDisabled,
 					onClick: props.onSubmit,
-					children: props.busy ? t(props.submitBusyLabel) : t(props.submitLabel)
+					children: props.busy ? t(props.submitBusyLabelKey) : t(props.submitLabelKey)
 				})]
 			});
 		}
@@ -444,203 +446,6 @@ window.__ModuleLoader__.load({
 			});
 		}
 		//#endregion
-		//#region lib/types/client/store.js
-		/**
-		* Models settings page store: one snapshot joining the configurable-provider
-		* directory (`llm.providers`), the settings namespaces (`settings.describe`),
-		* and the referenced credentials (`credentials.describe`). The host stays the
-		* single fact source — every mutation writes through the wire and the page
-		* re-renders from the next describe, pushed or refetched.
-		*/
-		/**
-		* Any route key walks a dict schema to the same profile node, so the lookup
-		* names one that cannot collide with a configured route.
-		*/
-		const PROBE_ROUTE = "\0probe";
-		/**
-		* Human text for a rejected wire call. A transport failure rejects with an
-		* Error; a host or a runtime can reject with anything, and the page still has
-		* to say something.
-		* @param error - the rejection value.
-		* @returns the message to show.
-		*/
-		function messageOf$1(error) {
-			return error instanceof Error ? error.message : String(error);
-		}
-		/**
-		* Derive the conventional credential reference for a provider route: the v1
-		* page never asks for an environment-variable name, so a typed key stores
-		* under this derived reference and the profile records it as `apiKeyEnv`.
-		* @param provider - provider route id (e.g. `anthropic`, `minimax-cn`).
-		* @returns the derived reference name (e.g. `MINIMAX_CN_API_KEY`).
-		*/
-		function deriveKeyRef(provider) {
-			return `${provider.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_API_KEY`;
-		}
-		/**
-		* The wire protocols a hand-declared route may name, read out of the owning
-		* namespace's own schema. This stays a schema read rather than a wire field so
-		* the choices the page offers cannot drift from the ones the adapter accepts:
-		* both come from the same `Config`.
-		* @param namespace - the namespace view whose schema declares the profile shape.
-		* @returns the protocol identifiers, or an empty list when the schema has none.
-		*/
-		function protocolChoices(namespace) {
-			if (namespace === void 0) return [];
-			const list = (0, _deepseek_ai_dsh_client_schema_form.nodeAtPath)((0, _deepseek_ai_dsh_client_schema_form.rehydrateSchema)(namespace.schema), [
-				"providers",
-				PROBE_ROUTE,
-				"api"
-			]);
-			if (list?.type !== "union" || list.list === void 0) return [];
-			return list.list.map((entry) => entry.value).filter((value) => typeof value === "string");
-		}
-		/** The credential reference a resolved profile names (its `apiKeyEnv` field). */
-		function apiKeyEnvOf(namespace, path) {
-			if (namespace === void 0) return void 0;
-			const profile = (0, _deepseek_ai_dsh_client_schema_form.getPath)(namespace.value, path);
-			if (typeof profile !== "object" || profile === null) return void 0;
-			const ref = profile.apiKeyEnv;
-			return typeof ref === "string" && ref.length > 0 ? ref : void 0;
-		}
-		/** The models settings page controller (one per settings surface). */
-		var ModelsSettingsStore = class {
-			api;
-			/** The snapshot the section renders from (uSES-safe store). */
-			store = (0, _deepseek_ai_dsh_client_runtime_client.createSnapshotStore)({
-				status: "idle",
-				error: null,
-				credentialError: null,
-				writable: false,
-				rows: [],
-				namespaces: /* @__PURE__ */ new Map()
-			});
-			/** Latest load wins; an older response never overwrites a newer one. */
-			generation = 0;
-			/**
-			* @param api - the wire face (settings/credentials/llm domains).
-			*/
-			constructor(api) {
-				this.api = api;
-			}
-			/**
-			* Refresh the whole page snapshot: directory and namespaces in parallel,
-			* then one batched credential describe over every referenced ref. A
-			* failure keeps the last good rows and surfaces the error.
-			* @returns nothing; the snapshot carries the outcome.
-			*/
-			async load() {
-				const generation = ++this.generation;
-				this.store.update((s) => {
-					s.status = "loading";
-					s.error = null;
-				});
-				let providers;
-				let writable;
-				let views;
-				try {
-					const [providersResponse, settingsResponse] = await Promise.all([this.api.llm.providers({}), this.api.settings.describe({})]);
-					if (!providersResponse.result.ok) throw new Error(providersResponse.result.error.message);
-					if (!settingsResponse.result.ok) throw new Error(settingsResponse.result.error.message);
-					providers = providersResponse.result.value.providers;
-					writable = settingsResponse.result.value.writable;
-					views = settingsResponse.result.value.namespaces;
-				} catch (error) {
-					if (generation !== this.generation) return;
-					this.store.update((s) => {
-						s.status = "error";
-						s.error = error instanceof Error ? error.message : String(error);
-					});
-					return;
-				}
-				const namespaces = new Map(views.map((view) => [view.ns, view]));
-				const rows = providers.map((entry) => {
-					const namespace = namespaces.get(entry.settingsNs);
-					return {
-						entry,
-						configured: namespace !== void 0 && (entry.settingsPath.length === 0 || (0, _deepseek_ai_dsh_client_schema_form.getPath)(namespace.value, entry.settingsPath) !== void 0),
-						removable: namespace !== void 0 && entry.settingsPath.length > 0 && (0, _deepseek_ai_dsh_client_schema_form.hasPath)(namespace.user, entry.settingsPath) && !(0, _deepseek_ai_dsh_client_schema_form.hasPath)(namespace.base, entry.settingsPath),
-						apiKeyEnv: apiKeyEnvOf(namespace, entry.settingsPath),
-						credential: void 0
-					};
-				});
-				const refs = [...new Set(rows.flatMap((row) => row.apiKeyEnv === void 0 ? [] : [row.apiKeyEnv]))];
-				let credentials = {};
-				let credentialError = null;
-				if (refs.length > 0) try {
-					const response = await this.api.credentials.describe({ refs });
-					if (response.result.ok) credentials = response.result.value.credentials;
-					else credentialError = response.result.error.message;
-				} catch (error) {
-					credentialError = messageOf$1(error);
-				}
-				if (generation !== this.generation) return;
-				this.store.update((s) => {
-					s.status = "ready";
-					s.error = null;
-					s.credentialError = credentialError;
-					s.writable = writable;
-					s.rows = rows.map((row) => ({
-						...row,
-						...row.apiKeyEnv !== void 0 && credentials[row.apiKeyEnv] !== void 0 ? { credential: credentials[row.apiKeyEnv] } : {}
-					}));
-					s.namespaces = namespaces;
-				});
-			}
-		};
-		/**
-		* Whether a joined row can serve model requests as it stands: the route is
-		* registered with the adapter registry, and whatever credential its resolved
-		* profile names is stored. A profile naming no reference authenticates through
-		* the provider's own path (the Bedrock chain, Vertex ADC, a gateway that needs
-		* nothing), as does a live route with no settings address at all, so neither
-		* owes this page a key.
-		* @param row - one joined provider row.
-		* @returns whether the user already has this provider to talk to.
-		*/
-		function providerUsable(row) {
-			if (!row.entry.active) return false;
-			if (row.apiKeyEnv === void 0) return true;
-			return row.credential?.configured === true;
-		}
-		/**
-		* Project first-run readiness from the provider/settings/credential join used
-		* by the Models page. The step exists to leave the user with a model to talk
-		* to, so ANY usable provider ends it; only when none exists does the official
-		* DeepSeek route — the one route the prompt can offer a key field for — decide
-		* whether prompting can help. A missing official configurable-provider
-		* declaration means the adapter is not repairable by navigating to Models.
-		* @param state - current shared Models join snapshot.
-		* @returns the onboarding state without reading a parallel fact source.
-		*/
-		function onboardingReadiness(state) {
-			if ((state.status === "idle" || state.status === "loading") && state.rows.length === 0) return { kind: "loading" };
-			if (state.status === "error") return {
-				kind: "unavailable",
-				reason: "load-failed"
-			};
-			if (state.rows.some(providerUsable)) return { kind: "provider-ready" };
-			const row = state.rows.find((candidate) => candidate.entry.provider === "deepseek-official" && candidate.entry.settingsNs === "llm-deepseek" && candidate.entry.settingsPath.length === 0);
-			if (row === void 0) return { kind: "adapter-absent" };
-			if (!row.entry.active) return {
-				kind: "unavailable",
-				reason: "provider-inactive"
-			};
-			if (state.credentialError !== null || row.credential === void 0) return {
-				kind: "unavailable",
-				reason: "credentials-unavailable"
-			};
-			if (!state.writable) return {
-				kind: "unavailable",
-				reason: "settings-read-only"
-			};
-			if (!row.credential.writable) return {
-				kind: "unavailable",
-				reason: "credential-read-only"
-			};
-			return { kind: "credential-missing" };
-		}
-		//#endregion
 		//#region lib/types/client/ModelListEditor.js
 		/**
 		* The model list of one pi-ai provider profile, plus the action that asks the
@@ -745,11 +550,12 @@ window.__ModuleLoader__.load({
 		* @returns the model-list editor.
 		*/
 		function ModelListEditor(props) {
-			const { models, onChange, probe, api, t, disabled } = props;
+			const { models, onChange, probe, operations, t, disabled } = props;
 			const [busy, setBusy] = (0, react.useState)(false);
 			const [failure, setFailure] = (0, react.useState)(void 0);
 			const [candidates, setCandidates] = (0, react.useState)(void 0);
 			const [picked, setPicked] = (0, react.useState)(/* @__PURE__ */ new Set());
+			const [candidateQuery, setCandidateQuery] = (0, react.useState)("");
 			const [expanded, setExpanded] = (0, react.useState)(/* @__PURE__ */ new Set());
 			const [editing, setEditing] = (0, react.useState)(/* @__PURE__ */ new Map());
 			/** Buffer key for one capacity field; the row half moves when rows do. */
@@ -791,27 +597,25 @@ window.__ModuleLoader__.load({
 				setBusy(true);
 				setFailure(void 0);
 				try {
-					const response = await api.llm.discoverModels({
-						settingsNs: probe.settingsNs,
+					const answer = await operations.discoverModels(probe.settingsNs, {
 						...probe.provider === void 0 ? {} : { provider: probe.provider },
 						...probe.baseURL === void 0 || probe.baseURL.length === 0 ? {} : { baseURL: probe.baseURL },
 						...probe.api === void 0 ? {} : { api: probe.api },
 						...probe.apiKey === void 0 ? {} : { apiKey: probe.apiKey }
 					});
-					if (!response.result.ok) {
-						setFailure(response.result.error.message);
+					if (answer.kind === "refused") {
+						setFailure(answer.message);
 						return;
 					}
-					const found = response.result.value.models;
+					const found = answer.models;
 					if (found.length === 0) {
 						setFailure(t("fetchEmpty"));
 						return;
 					}
 					const known = new Set(models.map((model) => textOf(model, "id")));
+					setCandidateQuery("");
 					setCandidates(found);
 					setPicked(new Set(found.filter((model) => !known.has(model.id)).map((model) => model.id)));
-				} catch (error) {
-					setFailure(messageOf$1(error));
 				} finally {
 					setBusy(false);
 				}
@@ -819,6 +623,7 @@ window.__ModuleLoader__.load({
 			const closePicker = () => {
 				setCandidates(void 0);
 				setPicked(/* @__PURE__ */ new Set());
+				setCandidateQuery("");
 			};
 			const adoptPicked = () => {
 				/* v8 ignore next -- the dialog only renders with candidates loaded */
@@ -835,6 +640,18 @@ window.__ModuleLoader__.load({
 				setPicked((current) => {
 					const next = new Set(current);
 					if (!next.delete(id)) next.add(id);
+					return next;
+				});
+			};
+			const activeCandidates = candidates ?? [];
+			const normalizedCandidateQuery = candidateQuery.trim().toLowerCase();
+			const visibleCandidates = normalizedCandidateQuery.length === 0 ? activeCandidates : activeCandidates.filter((candidate) => candidate.id.toLowerCase().includes(normalizedCandidateQuery) || candidate.name?.toLowerCase().includes(normalizedCandidateQuery) === true);
+			const allVisibleCandidatesPicked = visibleCandidates.length > 0 && visibleCandidates.every((candidate) => picked.has(candidate.id));
+			const toggleVisibleCandidates = () => {
+				setPicked((current) => {
+					const next = new Set(current);
+					if (visibleCandidates.every((candidate) => current.has(candidate.id))) for (const candidate of visibleCandidates) next.delete(candidate.id);
+					else for (const candidate of visibleCandidates) next.add(candidate.id);
 					return next;
 				});
 			};
@@ -988,7 +805,7 @@ window.__ModuleLoader__.load({
 						className: ModelsSection_module_css_default["error"],
 						children: failure
 					}) : null,
-					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
+					(0, react_jsx_runtime.jsxs)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
 						open: candidates !== void 0,
 						onClose: closePicker,
 						title: t("fetchTitle"),
@@ -1004,9 +821,31 @@ window.__ModuleLoader__.load({
 							onClick: adoptPicked,
 							children: t("fetchAdopt")
 						})] }),
-						children: (0, react_jsx_runtime.jsx)("ul", {
+						children: [(0, react_jsx_runtime.jsxs)("div", {
+							className: ModelsSection_module_css_default["candidateToolbar"],
+							children: [(0, react_jsx_runtime.jsx)("input", {
+								className: `${ModelsSection_module_css_default["input"]} ${ModelsSection_module_css_default["candidateSearch"]}`,
+								type: "search",
+								value: candidateQuery,
+								placeholder: t("fetchSearch"),
+								"aria-label": t("fetchSearch"),
+								onChange: (event) => {
+									setCandidateQuery(event.target.value);
+								}
+							}), (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
+								variant: "ghost",
+								size: "sm",
+								disabled: visibleCandidates.length === 0,
+								onClick: toggleVisibleCandidates,
+								children: t(allVisibleCandidatesPicked ? "fetchDeselectAll" : "fetchSelectAll")
+							})]
+						}), visibleCandidates.length === 0 ? (0, react_jsx_runtime.jsx)("p", {
+							className: ModelsSection_module_css_default["candidateEmpty"],
+							role: "status",
+							children: t("fetchNoMatches")
+						}) : (0, react_jsx_runtime.jsx)("ul", {
 							className: ModelsSection_module_css_default["candidateList"],
-							children: (candidates ?? []).map((candidate) => (0, react_jsx_runtime.jsx)("li", {
+							children: visibleCandidates.map((candidate) => (0, react_jsx_runtime.jsx)("li", {
 								className: ModelsSection_module_css_default["candidate"],
 								children: (0, react_jsx_runtime.jsxs)("label", {
 									className: ModelsSection_module_css_default["candidateLabel"],
@@ -1022,10 +861,251 @@ window.__ModuleLoader__.load({
 									})]
 								})
 							}, candidate.id))
-						})
+						})]
 					})
 				]
 			});
+		}
+		//#endregion
+		//#region lib/types/client/store.js
+		/**
+		* Models settings page store: one snapshot joining the configurable-provider
+		* directory (`llm/listProviders` joined with `llm/listConfigurableProviders`),
+		* the settings namespaces (shared settings mirror),
+		* and the referenced credentials (`credentials/describe`). The host stays the
+		* single fact source — every mutation writes through the wire and the page
+		* re-renders from the next describe, pushed or refetched.
+		*/
+		/**
+		* Any route key walks a dict schema to the same profile node, so the lookup
+		* names one that cannot collide with a configured route.
+		*/
+		const PROBE_ROUTE = "\0probe";
+		/**
+		* Join declared configurable providers with the currently registered routes.
+		* @param registered - live provider routes in registration order.
+		* @param directory - declared configurable providers in declaration order.
+		* @returns declared rows followed by live routes with no declaration.
+		*/
+		function joinProviderDirectory(registered, directory) {
+			const active = new Set(registered.map((provider) => provider.id));
+			const declared = new Set(directory.map((entry) => entry.provider));
+			const rows = directory.map((entry) => ({
+				provider: entry.provider,
+				displayName: entry.displayName,
+				settingsNs: entry.settingsNs,
+				settingsPath: [...entry.settingsPath],
+				active: active.has(entry.provider),
+				...entry.declared === void 0 ? {} : { declared: entry.declared }
+			}));
+			for (const provider of registered) {
+				if (declared.has(provider.id)) continue;
+				rows.push({
+					provider: provider.id,
+					displayName: provider.name,
+					settingsNs: "",
+					settingsPath: [],
+					active: true
+				});
+			}
+			return rows;
+		}
+		/**
+		* Derive the conventional credential reference for a provider route: the v1
+		* page never asks for an environment-variable name, so a typed key stores
+		* under this derived reference and the profile records it as `apiKeyEnv`.
+		* @param provider - provider route id (e.g. `anthropic`, `minimax-cn`).
+		* @returns the derived reference name (e.g. `MINIMAX_CN_API_KEY`).
+		*/
+		function deriveKeyRef(provider) {
+			return `${provider.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_API_KEY`;
+		}
+		/**
+		* The wire protocols a hand-declared route may name, read out of the owning
+		* namespace's own schema. This stays a schema read rather than a wire field so
+		* the choices the page offers cannot drift from the ones the adapter accepts:
+		* both come from the same `Config`.
+		* @param namespace - the namespace view whose schema declares the profile shape.
+		* @param schema - settings schema operations.
+		* @returns the protocol identifiers, or an empty list when the schema has none.
+		*/
+		function protocolChoices(namespace, schema) {
+			if (namespace === void 0) return [];
+			const list = schema.nodeAtPath(schema.rehydrate(namespace.schema), [
+				"providers",
+				PROBE_ROUTE,
+				"api"
+			]);
+			if (list?.type !== "union" || list.list === void 0) return [];
+			return list.list.map((entry) => entry.value).filter((value) => typeof value === "string");
+		}
+		/** The credential reference a resolved profile names (its `apiKeyEnv` field). */
+		function apiKeyEnvOf(namespace, path, schema) {
+			if (namespace === void 0) return void 0;
+			const profile = schema.getPath(namespace.value, path);
+			if (typeof profile !== "object" || profile === null) return void 0;
+			const ref = profile.apiKeyEnv;
+			return typeof ref === "string" && ref.length > 0 ? ref : void 0;
+		}
+		/** The models settings page controller (one per settings surface). */
+		var ModelsSettingsStore = class {
+			ctx;
+			schema;
+			describeFace;
+			/** The snapshot the section renders from (uSES-safe store). */
+			store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({
+				status: "idle",
+				error: null,
+				credentialError: null,
+				writable: false,
+				rows: [],
+				namespaces: /* @__PURE__ */ new Map()
+			});
+			/** Latest load wins; an older response never overwrites a newer one. */
+			generation = 0;
+			/**
+			* @param ctx - the page plugin's context, whose `remote.llm` and
+			* `remote.credentials` namespaces carry the directory and credential reads.
+			* @param schema - settings-owned schema and immutable path operations.
+			* @param describeFace - the shared mirror's describe face (namespace views and writability).
+			*/
+			constructor(ctx, schema, describeFace) {
+				this.ctx = ctx;
+				this.schema = schema;
+				this.describeFace = describeFace;
+			}
+			/**
+			* Refresh the whole page snapshot: the provider directory and the mirror's
+			* settings answer in parallel, then one batched credential describe over
+			* every referenced ref. Provider failure or absence of an initial settings
+			* answer keeps the last good rows and surfaces an error; a failed settings
+			* refresh reuses the mirror's held view.
+			* @returns nothing; the snapshot carries the outcome.
+			*/
+			async load() {
+				const generation = ++this.generation;
+				this.store.update((s) => {
+					s.status = "loading";
+					s.error = null;
+				});
+				const [registered, declared] = await Promise.all([
+					this.ctx.remote.llm.listProviders(),
+					this.ctx.remote.llm.listConfigurableProviders(),
+					this.describeFace.ensure()
+				]);
+				if (!registered.ok) {
+					this.failLoad(generation, registered.error.message);
+					return;
+				}
+				if (!declared.ok) {
+					this.failLoad(generation, declared.error.message);
+					return;
+				}
+				const mirrored = this.describeFace.getSnapshot();
+				if (mirrored.view === void 0) {
+					this.failLoad(generation, mirrored.error ?? "settings are unavailable in this browser");
+					return;
+				}
+				const providers = joinProviderDirectory(registered.value, declared.value);
+				const writable = mirrored.view.writable;
+				const views = mirrored.view.namespaces;
+				const namespaces = new Map(views.map((view) => [view.ns, view]));
+				const rows = providers.map((entry) => {
+					const namespace = namespaces.get(entry.settingsNs);
+					return {
+						entry,
+						configured: namespace !== void 0 && (entry.settingsPath.length === 0 || this.schema.getPath(namespace.value, entry.settingsPath) !== void 0),
+						removable: namespace !== void 0 && entry.settingsPath.length > 0 && this.schema.hasPath(namespace.user, entry.settingsPath) && !this.schema.hasPath(namespace.base, entry.settingsPath),
+						apiKeyEnv: apiKeyEnvOf(namespace, entry.settingsPath, this.schema),
+						credential: void 0
+					};
+				});
+				const refs = [...new Set(rows.map((row) => row.apiKeyEnv ?? deriveKeyRef(row.entry.provider)))];
+				let credentials = {};
+				let credentialError = null;
+				if (refs.length > 0) {
+					const response = await this.ctx.remote.credentials.describe(refs);
+					if (response.ok) credentials = response.value;
+					else credentialError = response.error.message;
+				}
+				if (generation !== this.generation) return;
+				this.store.update((s) => {
+					s.status = "ready";
+					s.error = null;
+					s.credentialError = credentialError;
+					s.writable = writable;
+					s.rows = rows.map((row) => {
+						const named = row.apiKeyEnv === void 0 ? void 0 : credentials[row.apiKeyEnv];
+						const derived = row.apiKeyEnv !== void 0 ? void 0 : credentials[deriveKeyRef(row.entry.provider)];
+						return {
+							...row,
+							...named === void 0 ? {} : { credential: named },
+							...derived === void 0 ? {} : { derivedCredential: derived }
+						};
+					});
+					s.namespaces = namespaces;
+				});
+			}
+			/** Publish one load's failure text, unless a newer load already took over. */
+			failLoad(generation, message) {
+				if (generation !== this.generation) return;
+				this.store.update((s) => {
+					s.status = "error";
+					s.error = message;
+				});
+			}
+		};
+		/**
+		* Whether a joined row can serve model requests as it stands: the route is
+		* registered with the adapter registry, and whatever credential its resolved
+		* profile names is stored. A profile naming no reference authenticates through
+		* the provider's own path (the Bedrock chain, Vertex ADC, a gateway that needs
+		* nothing), as does a live route with no settings address at all, so neither
+		* owes this page a key.
+		* @param row - one joined provider row.
+		* @returns whether the user already has this provider to talk to.
+		*/
+		function providerUsable(row) {
+			if (!row.entry.active) return false;
+			if (row.apiKeyEnv === void 0) return true;
+			return row.credential?.configured === true;
+		}
+		/**
+		* Project first-run readiness from the provider/settings/credential join used
+		* by the Models page. The step exists to leave the user with a model to talk
+		* to, so ANY usable provider ends it; only when none exists does the official
+		* DeepSeek route — the one route the prompt can offer a key field for — decide
+		* whether prompting can help. A missing official configurable-provider
+		* declaration means the adapter is not repairable by navigating to Models.
+		* @param state - current shared Models join snapshot.
+		* @returns the onboarding state without reading a parallel fact source.
+		*/
+		function onboardingReadiness(state) {
+			if ((state.status === "idle" || state.status === "loading") && state.rows.length === 0) return { kind: "loading" };
+			if (state.status === "error") return {
+				kind: "unavailable",
+				reason: "load-failed"
+			};
+			if (state.rows.some(providerUsable)) return { kind: "provider-ready" };
+			const row = state.rows.find((candidate) => candidate.entry.provider === "deepseek-official" && candidate.entry.settingsNs === "llm-deepseek" && candidate.entry.settingsPath.length === 0);
+			if (row === void 0) return { kind: "adapter-absent" };
+			if (!row.entry.active) return {
+				kind: "unavailable",
+				reason: "provider-inactive"
+			};
+			if (state.credentialError !== null || row.credential === void 0) return {
+				kind: "unavailable",
+				reason: "credentials-unavailable"
+			};
+			if (!state.writable) return {
+				kind: "unavailable",
+				reason: "settings-read-only"
+			};
+			if (!row.credential.writable) return {
+				kind: "unavailable",
+				reason: "credential-read-only"
+			};
+			return { kind: "credential-missing" };
 		}
 		//#endregion
 		//#region lib/types/client/CustomProviderCard.js
@@ -1038,7 +1118,7 @@ window.__ModuleLoader__.load({
 		* the provider editor with extra fields: the route id is being *chosen* here,
 		* and the settings address does not exist until it is. One `settings.mutate`
 		* sets the whole profile at `providers.<route>`; the key travels separately
-		* through `credentials.set` under the reference the profile records, exactly as
+		* through `credentials/set` under the reference the profile records, exactly as
 		* an existing provider's key does.
 		*
 		* The three fields a hand-declared route cannot default — endpoint, protocol,
@@ -1068,7 +1148,7 @@ window.__ModuleLoader__.load({
 		* @returns the creation card.
 		*/
 		function CustomProviderCard(props) {
-			const { taken, protocols, api, t } = props;
+			const { taken, protocols, operations, t } = props;
 			const [openedAt] = (0, react.useState)(() => props.revision);
 			const [route, setRoute] = (0, react.useState)("");
 			const [displayName, setDisplayName] = (0, react.useState)("");
@@ -1106,24 +1186,17 @@ window.__ModuleLoader__.load({
 						baseURL,
 						models: models.map((model) => ({ ...model }))
 					};
-					const response = await api.settings.mutate({
-						ns: NS$1,
-						ops: [{
-							op: "set",
-							path: ["providers", route],
-							value: profile
-						}],
-						expectedRevision: openedAt
-					});
-					if (!response.result.ok) return response.result.error.message;
+					const written = await operations.writeSettings(NS$1, [{
+						op: "set",
+						path: ["providers", route],
+						value: profile
+					}], openedAt);
+					if (written.kind !== "written") return written.kind === "conflict" ? t("conflict") : written.message;
 					setCommitted(true);
 				}
 				if (storesKey) {
-					const stored = await api.credentials.set({
-						ref: keyRef,
-						value: keyValue
-					});
-					if (!stored.result.ok) return stored.result.error.message;
+					const stored = await operations.storeCredential(keyRef, keyValue);
+					if (stored !== void 0) return stored;
 				}
 			};
 			const create = async () => {
@@ -1136,8 +1209,6 @@ window.__ModuleLoader__.load({
 						return;
 					}
 					props.onClose(true);
-				} catch (error) {
-					setFailure(messageOf$1(error));
 				} finally {
 					setBusy(false);
 				}
@@ -1202,7 +1273,7 @@ window.__ModuleLoader__.load({
 							className: ModelsSection_module_css_default["input"],
 							type: "text",
 							value: baseURL,
-							placeholder: "https://gateway.example/v1",
+							placeholder: t("customBaseUrlPlaceholder"),
 							"aria-label": t("baseUrl"),
 							disabled: profileDisabled,
 							onChange: (event) => {
@@ -1264,7 +1335,7 @@ window.__ModuleLoader__.load({
 							...keyValue.length === 0 ? {} : { apiKey: keyValue }
 						},
 						probeBlocked: keyFailure === "keyBlank" ? "keyBlankNew" : keyFailure,
-						api,
+						operations,
 						t,
 						disabled: profileDisabled
 					}),
@@ -1280,8 +1351,8 @@ window.__ModuleLoader__.load({
 						t,
 						busy,
 						submitDisabled: disabled || !ready,
-						submitLabel: "create",
-						submitBusyLabel: "creating",
+						submitLabelKey: "create",
+						submitBusyLabelKey: "creating",
 						onCancel: () => {
 							props.onClose(committed);
 						},
@@ -1297,7 +1368,7 @@ window.__ModuleLoader__.load({
 		/**
 		* One provider's editor card, hand-written per adapter family: the primary
 		* field is a single write-only **API key** input (the page never asks for an
-		* environment-variable name — a typed key stores through `credentials.set`
+		* environment-variable name — a typed key stores through `credentials/set`
 		* under the profile's reference, deriving `<ROUTE>_API_KEY` when the profile
 		* has none. The pi-ai profile records that derivation as `apiKeyEnv` only when
 		* a key is entered; a blank key materializes a reference-free profile for
@@ -1319,8 +1390,8 @@ window.__ModuleLoader__.load({
 		/** The public DeepSeek endpoint shown as the deepseek base-URL placeholder. */
 		const DEEPSEEK_PUBLIC_BASE_URL = "https://api.deepseek.com";
 		/** A user-section subtree as a plain draft object (absent → empty). */
-		function draftAt(namespace, path) {
-			const subtree = (0, _deepseek_ai_dsh_client_schema_form.getPath)(namespace.user, path);
+		function draftAt(schema, namespace, path) {
+			const subtree = schema.getPath(namespace.user, path);
 			if (typeof subtree !== "object" || subtree === null || Array.isArray(subtree)) return {};
 			return structuredClone(subtree);
 		}
@@ -1358,8 +1429,8 @@ window.__ModuleLoader__.load({
 			return "unknown";
 		}
 		/** The credential reference this profile resolves keys through. */
-		function refFor(namespace, path, provider) {
-			const profile = (0, _deepseek_ai_dsh_client_schema_form.getPath)(namespace.value, path);
+		function refFor(schema, namespace, path, provider) {
+			const profile = schema.getPath(namespace.value, path);
 			const named = typeof profile === "object" && profile !== null ? profile.apiKeyEnv : void 0;
 			return typeof named === "string" && named.length > 0 ? named : deriveKeyRef(provider);
 		}
@@ -1369,41 +1440,49 @@ window.__ModuleLoader__.load({
 		* @returns the editor card.
 		*/
 		function ProviderEditor(props) {
-			const { namespace, settingsPath, api, t } = props;
-			const [draft, setDraft] = (0, react.useState)(() => draftAt(namespace, settingsPath));
+			const { namespace, schema, settingsPath, operations, t } = props;
+			const [draft, setDraft] = (0, react.useState)(() => draftAt(schema, namespace, settingsPath));
 			const [keyDraft, setKeyDraft] = (0, react.useState)("");
 			const [keyState, setKeyState] = (0, react.useState)(void 0);
 			const [busy, setBusy] = (0, react.useState)(false);
 			const [failure, setFailure] = (0, react.useState)(void 0);
-			const [committedOriginal, setCommittedOriginal] = (0, react.useState)(() => (0, _deepseek_ai_dsh_client_schema_form.getPath)(namespace.user, settingsPath));
+			const [committedOriginal, setCommittedOriginal] = (0, react.useState)(() => schema.getPath(namespace.user, settingsPath));
 			const [expectedRevision, setExpectedRevision] = (0, react.useState)(() => namespace.revision);
-			const root = (0, react.useMemo)(() => (0, _deepseek_ai_dsh_client_schema_form.rehydrateSchema)(namespace.schema), [namespace.schema]);
-			const node = (0, react.useMemo)(() => (0, _deepseek_ai_dsh_client_schema_form.nodeAtPath)(root, settingsPath), [root, settingsPath]);
-			const fallback = (0, _deepseek_ai_dsh_client_schema_form.getPath)(namespace.value, settingsPath);
+			const root = (0, react.useMemo)(() => schema.rehydrate(namespace.schema), [namespace.schema, schema]);
+			const node = (0, react.useMemo)(() => schema.nodeAtPath(root, settingsPath), [
+				root,
+				schema,
+				settingsPath
+			]);
+			const fallback = schema.getPath(namespace.value, settingsPath);
 			const disabled = props.readOnly || busy;
 			const layout = layoutOf(namespace.ns);
-			const keyRef = refFor(namespace, settingsPath, props.provider);
-			const protocols = (0, react.useMemo)(() => layout === "pi-ai" ? protocolChoices(namespace) : [], [layout, namespace]);
+			const keyRef = refFor(schema, namespace, settingsPath, props.provider);
+			const protocols = (0, react.useMemo)(() => layout === "pi-ai" ? protocolChoices(namespace, schema) : [], [
+				layout,
+				namespace,
+				schema
+			]);
 			(0, react.useEffect)(() => {
 				let stale = false;
 				setKeyState(void 0);
-				api.credentials.describe({ refs: [keyRef] }).then((response) => {
-					if (stale || !response.result.ok) return;
-					setKeyState(response.result.value.credentials[keyRef]);
-				}, () => void 0);
+				operations.describeCredential(keyRef).then((described) => {
+					if (stale) return;
+					setKeyState(described);
+				});
 				return () => {
 					stale = true;
 				};
-			}, [api.credentials, keyRef]);
+			}, [operations, keyRef]);
 			const stringAt = (source, key) => {
-				const value = (0, _deepseek_ai_dsh_client_schema_form.getPath)(source, [key]);
+				const value = schema.getPath(source, [key]);
 				return typeof value === "string" && value.trim().length > 0 ? value : void 0;
 			};
 			const setField = (key, next) => {
 				const value = next === void 0 || next.trim().length === 0 ? void 0 : next;
-				setDraft((current) => value === void 0 ? (0, _deepseek_ai_dsh_client_schema_form.deletePath)(current, [key]) : (0, _deepseek_ai_dsh_client_schema_form.setPath)(current, [key], value));
+				setDraft((current) => value === void 0 ? schema.deletePath(current, [key]) : schema.setPath(current, [key], value));
 			};
-			const modelFailure = validateDeepSeekModels((0, _deepseek_ai_dsh_client_schema_form.getPath)(draft, ["models"]));
+			const modelFailure = validateDeepSeekModels(schema.getPath(draft, ["models"]));
 			const keyFailure = apiKeyFailure(keyDraft);
 			const keyValue = keyDraft.trim();
 			const shownKeyFailure = (props.credentialRequired === true && keyDraft.length > 0 && keyValue.length === 0 ? "keyRequired" : void 0) ?? keyFailure;
@@ -1424,15 +1503,15 @@ window.__ModuleLoader__.load({
 			*/
 			const applyOnce = async () => {
 				const ns = namespace.ns;
-				const next = layout === "pi-ai" && stringAt(draft, "apiKeyEnv") === void 0 && stringAt(fallback, "apiKeyEnv") === void 0 && keyValue.length > 0 ? (0, _deepseek_ai_dsh_client_schema_form.setPath)(draft, ["apiKeyEnv"], keyRef) : draft;
+				const next = layout === "pi-ai" && stringAt(draft, "apiKeyEnv") === void 0 && stringAt(fallback, "apiKeyEnv") === void 0 && keyValue.length > 0 ? schema.setPath(draft, ["apiKeyEnv"], keyRef) : draft;
 				if (props.credentialOnly !== true) {
-					const failure = validateDeepSeekModels((0, _deepseek_ai_dsh_client_schema_form.getPath)(next, ["models"]));
+					const failure = validateDeepSeekModels(schema.getPath(next, ["models"]));
 					/* v8 ignore next 3 -- unreachable from the card: the same failure disables submit */
 					if (failure !== void 0) return `${t("model")} ${String(failure.index + 1)}: ${t(failure.key)}`;
 				}
 				/* v8 ignore next -- apply is only reachable from the rendered card, which required a resolved node */
 				if (props.credentialOnly !== true && node !== void 0 && settingsPath.length === 0) {
-					const sectionError = (0, _deepseek_ai_dsh_client_schema_form.validateDraft)(node, next);
+					const sectionError = schema.validate(node, next);
 					if (sectionError !== void 0) return sectionError;
 				}
 				const materializesNativeProfile = layout === "pi-ai" && fallback === void 0 && committedOriginal === void 0 && Object.keys(next).length === 0;
@@ -1442,22 +1521,15 @@ window.__ModuleLoader__.load({
 					value: {}
 				}] : pathOps(settingsPath, committedOriginal, next);
 				if (ops.length > 0) {
-					const response = await api.settings.mutate({
-						ns,
-						ops,
-						expectedRevision
-					});
-					if (!response.result.ok) return response.result.error.code === "settings-conflict" ? t("conflict") : response.result.error.message;
-					setCommittedOriginal((0, _deepseek_ai_dsh_client_schema_form.getPath)(response.result.value.user, settingsPath));
-					setExpectedRevision(response.result.value.revision);
+					const written = await operations.writeSettings(ns, ops, expectedRevision);
+					if (written.kind !== "written") return written.kind === "conflict" ? t("conflict") : written.message;
+					setCommittedOriginal(schema.getPath(written.view.user, settingsPath));
+					setExpectedRevision(written.view.revision);
 					setDraft(next);
 				}
 				if (keyValue.length > 0) {
-					const stored = await api.credentials.set({
-						ref: keyRef,
-						value: keyValue
-					});
-					if (!stored.result.ok) return stored.result.error.message;
+					const stored = await operations.storeCredential(keyRef, keyValue);
+					if (stored !== void 0) return stored;
 				}
 				setKeyDraft("");
 			};
@@ -1471,15 +1543,17 @@ window.__ModuleLoader__.load({
 						return;
 					}
 					props.onClose(true);
-				} catch (error) {
-					setFailure(messageOf$1(error));
 				} finally {
 					setBusy(false);
 				}
 			};
-			if (node === void 0) return (0, react_jsx_runtime.jsx)("p", {
+			if (node === void 0) return (0, react_jsx_runtime.jsxs)("p", {
 				className: ModelsSection_module_css_default["error"],
-				children: `${props.provider}: unresolvable settings path`
+				children: [
+					props.provider,
+					": ",
+					props.t("settingsPathUnresolvable")
+				]
 			});
 			const keyLocked = keyState?.writable === false;
 			/**
@@ -1490,7 +1564,7 @@ window.__ModuleLoader__.load({
 			* moment reset drops it, leaving the rows unchanged until a reload.
 			*/
 			const inheritedModels = () => {
-				return (0, _deepseek_ai_dsh_client_schema_form.getPath)(namespace.base, [...settingsPath, "models"]) ?? (0, _deepseek_ai_dsh_client_schema_form.nodeAtPath)(root, [...settingsPath, "models"])?.meta.default;
+				return schema.getPath(namespace.base, [...settingsPath, "models"]) ?? schema.nodeAtPath(root, [...settingsPath, "models"])?.meta.default;
 			};
 			/**
 			* The curated fields of one known adapter family. The family arrives
@@ -1499,11 +1573,11 @@ window.__ModuleLoader__.load({
 			*/
 			const curatedFields = (family) => {
 				const ownsIdentity = family === "pi-ai" && props.declared === true;
-				const customModels = (0, _deepseek_ai_dsh_client_schema_form.getPath)(draft, ["models"]);
-				const modelsOverridden = (0, _deepseek_ai_dsh_client_schema_form.hasPath)(draft, ["models"]);
+				const customModels = schema.getPath(draft, ["models"]);
+				const modelsOverridden = schema.hasPath(draft, ["models"]);
 				const models = modelDrafts(modelsOverridden ? customModels : inheritedModels());
-				const defaultContextWindow = (0, _deepseek_ai_dsh_client_schema_form.getPath)(fallback, ["defaultContextWindow"]);
-				const defaultMaxTokens = (0, _deepseek_ai_dsh_client_schema_form.getPath)(fallback, ["maxTokens"]);
+				const defaultContextWindow = schema.getPath(fallback, ["defaultContextWindow"]);
+				const defaultMaxTokens = schema.getPath(fallback, ["maxTokens"]);
 				const keyPlaceholder = keyLocked ? t("keyEnvLocked") : keyState?.configured === true && props.credentialRequired !== true ? t("keyStored") : family === "pi-ai" ? t("keyPlaceholderNative") : t("keyPlaceholder");
 				/** What both family editors take: the rows, whose layer owns them, and the two writes. */
 				const catalogProps = {
@@ -1512,10 +1586,10 @@ window.__ModuleLoader__.load({
 					t,
 					disabled,
 					onChange: (next) => {
-						setDraft((current) => (0, _deepseek_ai_dsh_client_schema_form.setPath)(current, ["models"], next));
+						setDraft((current) => schema.setPath(current, ["models"], next));
 					},
 					onReset: () => {
-						setDraft((current) => (0, _deepseek_ai_dsh_client_schema_form.deletePath)(current, ["models"]));
+						setDraft((current) => schema.deletePath(current, ["models"]));
 					}
 				};
 				return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsxs)("div", {
@@ -1562,7 +1636,7 @@ window.__ModuleLoader__.load({
 									className: ModelsSection_module_css_default["input"],
 									type: "text",
 									value: stringAt(draft, "displayName") ?? "",
-									placeholder: stringAt((0, _deepseek_ai_dsh_client_schema_form.getPath)(namespace.base, settingsPath), "displayName") ?? props.provider,
+									placeholder: stringAt(schema.getPath(namespace.base, settingsPath), "displayName") ?? props.provider,
 									"aria-label": t("customDisplayName"),
 									disabled,
 									onChange: (event) => {
@@ -1617,7 +1691,7 @@ window.__ModuleLoader__.load({
 								...catalogProps,
 								probe,
 								probeBlocked: keyFailure,
-								api
+								operations
 							})
 						]
 					})]
@@ -1652,9 +1726,9 @@ window.__ModuleLoader__.load({
 						t,
 						busy,
 						submitDisabled: disabled || layout === "unknown" || props.credentialOnly !== true && modelFailure !== void 0 || shownKeyFailure !== void 0 || props.credentialRequired === true && keyValue.length === 0,
-						submitLabel: props.submitLabel ?? "apply",
-						submitBusyLabel: props.submitBusyLabel ?? "applying",
-						...props.cancelLabel === void 0 ? {} : { cancelLabel: props.cancelLabel },
+						submitLabelKey: props.submitLabelKey ?? "apply",
+						submitBusyLabelKey: props.submitBusyLabelKey ?? "applying",
+						...props.cancelLabelKey === void 0 ? {} : { cancelLabelKey: props.cancelLabelKey },
 						onCancel: () => {
 							props.onClose(false);
 						},
@@ -1696,28 +1770,21 @@ window.__ModuleLoader__.load({
 		* and the whole operation safely retryable; both unsets are idempotent.
 		* The settings removal names the profile rather than rebuilding its whole
 		* namespace from a partial view.
-		* @param api - settings and credential wire faces.
+		* @param operations - the page's Host operations.
 		* @param controller - the page store to refresh.
 		* @param target - the provider's settings address and optional managed credential.
 		* @returns the failure message, or undefined once the write and reload landed.
 		*/
-		async function removeProviderProfile(api, controller, target) {
-			try {
-				if (target.credentialRef !== void 0) {
-					const credential = await api.credentials.unset({ ref: target.credentialRef });
-					if (!credential.result.ok) return credential.result.error.message;
-				}
-				const response = await api.settings.mutate({
-					ns: target.settingsNs,
-					ops: [{
-						op: "unset",
-						path: [...target.settingsPath]
-					}]
-				});
-				if (!response.result.ok) return response.result.error.message;
-			} catch (error) {
-				return messageOf$1(error);
+		async function removeProviderProfile(operations, controller, target) {
+			if (target.credentialRef !== void 0) {
+				const credential = await operations.removeCredential(target.credentialRef);
+				if (credential !== void 0) return credential;
 			}
+			const written = await operations.writeSettings(target.settingsNs, [{
+				op: "unset",
+				path: [...target.settingsPath]
+			}], void 0);
+			if (written.kind !== "written") return written.message;
 			await controller.load();
 		}
 		/**
@@ -1733,6 +1800,16 @@ window.__ModuleLoader__.load({
 			if (anyUsable) return false;
 			if (row.entry.settingsPath.length > 0) return false;
 			return row.credential?.configured !== true;
+		}
+		/**
+		* The provider-card seat's credential fact: the reference this page would use
+		* for the row — the profile's `apiKeyEnv`, or the page's derived
+		* `<ROUTE>_API_KEY` while the profile names none — confirmed configured. The
+		* derived half is what keeps the seat consistent with the editor on the
+		* add-provider draft, whose dormant row names no reference yet.
+		*/
+		function keyConfiguredOf(row) {
+			return row.apiKeyEnv !== void 0 ? row.credential?.configured === true : row.derivedCredential?.configured === true;
 		}
 		function targetOf(row) {
 			const managedRef = deriveKeyRef(row.entry.provider);
@@ -1783,8 +1860,8 @@ window.__ModuleLoader__.load({
 				]
 			});
 		}
-		function Loaded({ injected }) {
-			const { controller, api, t } = injected;
+		function Loaded({ injected, renderSlot }) {
+			const { controller, operations, schema, t } = injected;
 			const state = injected.useSnapshot((snapshot) => snapshot);
 			const [editing, setEditing] = (0, react.useState)(void 0);
 			const [adding, setAdding] = (0, react.useState)(false);
@@ -1826,7 +1903,7 @@ window.__ModuleLoader__.load({
 				if (deleteTarget === void 0 || deleting) return;
 				setDeleting(true);
 				setDeleteFailure(void 0);
-				removeProviderProfile(api, controller, deleteTarget).then((failure) => {
+				removeProviderProfile(operations, controller, deleteTarget).then((failure) => {
 					if (failure !== void 0) {
 						setDeleteFailure(failure);
 						return;
@@ -1865,7 +1942,8 @@ window.__ModuleLoader__.load({
 			const addable = state.rows.filter((row) => !row.configured && row.entry.settingsNs !== "");
 			const addTarget = adding ? editing : void 0;
 			const addNamespace = addTarget === void 0 ? void 0 : state.namespaces.get(addTarget.settingsNs);
-			const protocols = protocolChoices(state.namespaces.get("llm-pi-ai"));
+			const addRow = addTarget === void 0 ? void 0 : state.rows.find((row) => row.entry.provider === addTarget.provider);
+			const protocols = protocolChoices(state.namespaces.get("llm-pi-ai"), schema);
 			return (0, react_jsx_runtime.jsxs)("div", {
 				className: ModelsSection_module_css_default["section"],
 				children: [
@@ -1894,85 +1972,99 @@ window.__ModuleLoader__.load({
 							const namespace = state.namespaces.get(target.settingsNs);
 							/* v8 ignore next -- the join marks a row configured only when its namespace resolved */
 							if (namespace === void 0) return null;
-							if (needsSetup(row, anyUsable) && !dismissedSetup.has(row.entry.provider)) return (0, react_jsx_runtime.jsx)("li", {
+							if (needsSetup(row, anyUsable) && !dismissedSetup.has(row.entry.provider)) return (0, react_jsx_runtime.jsxs)("li", {
 								className: ModelsSection_module_css_default["setupCard"],
-								children: renderProviderEditor({
+								children: [renderProviderEditor({
 									target,
 									namespace,
-									api,
+									schema,
+									operations,
 									t,
 									readOnly: !state.writable,
 									onClose: (changed) => {
 										closeSetup(changed, target);
 									}
-								})
+								}), renderSlot("settings.models.provider-card", {
+									provider: row.entry,
+									configured: row.configured,
+									keyConfigured: keyConfiguredOf(row)
+								}, { entryKey: row.entry.settingsNs })]
 							}, row.entry.provider);
 							const open = !adding && editing?.provider === row.entry.provider;
 							const credentialConfigured = row.credential?.configured === true;
 							const credentialMissing = !credentialConfigured && row.apiKeyEnv !== void 0 && row.credential?.configured === false;
 							return (0, react_jsx_runtime.jsxs)("li", {
 								className: ModelsSection_module_css_default["rowCard"],
-								children: [(0, react_jsx_runtime.jsxs)("div", {
-									className: ModelsSection_module_css_default["rowHead"],
-									children: [(0, react_jsx_runtime.jsxs)("span", {
-										className: ModelsSection_module_css_default["rowIdentity"],
-										children: [
-											(0, react_jsx_runtime.jsx)("span", {
-												className: ModelsSection_module_css_default["rowName"],
-												children: row.entry.displayName
-											}),
-											row.entry.declared === true ? (0, react_jsx_runtime.jsx)("span", {
-												className: ModelsSection_module_css_default["rowTag"],
-												children: t("customTag")
-											}) : null,
-											credentialConfigured ? (0, react_jsx_runtime.jsx)("span", {
-												className: `${ModelsSection_module_css_default["credentialDot"]} ${ModelsSection_module_css_default["credentialDotConfigured"]}`,
-												role: "img",
-												"aria-label": t("credentialConfigured"),
-												title: t("credentialConfigured")
-											}) : credentialMissing ? (0, react_jsx_runtime.jsx)("span", {
-												className: `${ModelsSection_module_css_default["credentialDot"]} ${ModelsSection_module_css_default["credentialDotMissing"]}`,
-												role: "img",
-												"aria-label": t("credentialMissing"),
-												title: t("credentialMissing")
-											}) : null
-										]
-									}), (0, react_jsx_runtime.jsxs)("span", {
-										className: ModelsSection_module_css_default["rowActions"],
-										children: [(0, react_jsx_runtime.jsx)("button", {
-											type: "button",
-											className: ModelsSection_module_css_default["secondaryButton"],
-											"aria-label": providerCopy(t("editProvider"), target),
-											onClick: () => {
-												setSavedTarget(void 0);
-												setDeclaring(false);
-												setAdding(false);
-												setEditing(open ? void 0 : target);
-											},
-											children: t("edit")
-										}), row.removable ? (0, react_jsx_runtime.jsx)("button", {
-											type: "button",
-											className: ModelsSection_module_css_default["dangerButton"],
-											"aria-label": providerCopy(t("removeProvider"), target),
-											disabled: !state.writable,
-											onClick: () => {
-												setSavedTarget(void 0);
-												setDeleteFailure(void 0);
-												setDeleteTarget(target);
-											},
-											children: t("remove")
-										}) : null]
-									})]
-								}), open ? renderProviderEditor({
-									target,
-									namespace,
-									api,
-									t,
-									readOnly: !state.writable,
-									onClose: (changed) => {
-										closeEditor(changed, target);
-									}
-								}) : null]
+								children: [
+									(0, react_jsx_runtime.jsxs)("div", {
+										className: ModelsSection_module_css_default["rowHead"],
+										children: [(0, react_jsx_runtime.jsxs)("span", {
+											className: ModelsSection_module_css_default["rowIdentity"],
+											children: [
+												(0, react_jsx_runtime.jsx)("span", {
+													className: ModelsSection_module_css_default["rowName"],
+													children: row.entry.displayName
+												}),
+												row.entry.declared === true ? (0, react_jsx_runtime.jsx)("span", {
+													className: ModelsSection_module_css_default["rowTag"],
+													children: t("customTag")
+												}) : null,
+												credentialConfigured ? (0, react_jsx_runtime.jsx)("span", {
+													className: `${ModelsSection_module_css_default["credentialDot"]} ${ModelsSection_module_css_default["credentialDotConfigured"]}`,
+													role: "img",
+													"aria-label": t("credentialConfigured"),
+													title: t("credentialConfigured")
+												}) : credentialMissing ? (0, react_jsx_runtime.jsx)("span", {
+													className: `${ModelsSection_module_css_default["credentialDot"]} ${ModelsSection_module_css_default["credentialDotMissing"]}`,
+													role: "img",
+													"aria-label": t("credentialMissing"),
+													title: t("credentialMissing")
+												}) : null
+											]
+										}), (0, react_jsx_runtime.jsxs)("span", {
+											className: ModelsSection_module_css_default["rowActions"],
+											children: [(0, react_jsx_runtime.jsx)("button", {
+												type: "button",
+												className: ModelsSection_module_css_default["secondaryButton"],
+												"aria-label": providerCopy(t("editProvider"), target),
+												onClick: () => {
+													setSavedTarget(void 0);
+													setDeclaring(false);
+													setAdding(false);
+													setEditing(open ? void 0 : target);
+												},
+												children: t("edit")
+											}), row.removable ? (0, react_jsx_runtime.jsx)("button", {
+												type: "button",
+												className: ModelsSection_module_css_default["dangerButton"],
+												"aria-label": providerCopy(t("removeProvider"), target),
+												disabled: !state.writable,
+												onClick: () => {
+													setSavedTarget(void 0);
+													setDeleteFailure(void 0);
+													setDeleteTarget(target);
+												},
+												children: t("remove")
+											}) : null]
+										})]
+									}),
+									renderSlot("settings.models.provider-card", {
+										provider: row.entry,
+										configured: row.configured,
+										keyConfigured: keyConfiguredOf(row)
+									}, { entryKey: row.entry.settingsNs }),
+									open ? renderProviderEditor({
+										target,
+										namespace,
+										schema,
+										operations,
+										t,
+										readOnly: !state.writable,
+										onClose: (changed) => {
+											closeEditor(changed, target);
+										}
+									}) : null
+								]
 							}, row.entry.provider);
 						})
 					}),
@@ -1980,39 +2072,48 @@ window.__ModuleLoader__.load({
 						className: ModelsSection_module_css_default["addBlock"],
 						children: addTarget !== void 0 && addNamespace !== void 0 ? (0, react_jsx_runtime.jsxs)("div", {
 							className: ModelsSection_module_css_default["addCard"],
-							children: [(0, react_jsx_runtime.jsxs)("div", {
-								className: ModelsSection_module_css_default["field"],
-								children: [(0, react_jsx_runtime.jsx)("span", {
-									className: ModelsSection_module_css_default["fieldLabel"],
-									children: t("provider")
-								}), (0, react_jsx_runtime.jsx)("select", {
-									className: `${ModelsSection_module_css_default["input"]} ${ModelsSection_module_css_default["selectInput"]}`,
-									value: addTarget.provider,
-									"aria-label": t("provider"),
-									onChange: (event) => {
-										const row = addable.find((candidate) => candidate.entry.provider === event.target.value);
-										/* v8 ignore next -- the select only lists addable rows */
-										if (row === void 0) return;
-										setEditing(targetOf(row));
-									},
-									children: addable.map((row) => (0, react_jsx_runtime.jsx)("option", {
-										value: row.entry.provider,
-										children: row.entry.displayName
-									}, row.entry.provider))
-								})]
-							}), (0, react_jsx_runtime.jsx)(ProviderEditor, {
-								provider: addTarget.provider,
-								displayName: addTarget.displayName,
-								hideTitle: true,
-								namespace: addNamespace,
-								settingsPath: addTarget.settingsPath,
-								api,
-								t,
-								readOnly: !state.writable,
-								onClose: (changed) => {
-									closeEditor(changed, addTarget);
-								}
-							}, addTarget.provider)]
+							children: [
+								(0, react_jsx_runtime.jsxs)("div", {
+									className: ModelsSection_module_css_default["field"],
+									children: [(0, react_jsx_runtime.jsx)("span", {
+										className: ModelsSection_module_css_default["fieldLabel"],
+										children: t("provider")
+									}), (0, react_jsx_runtime.jsx)("select", {
+										className: `${ModelsSection_module_css_default["input"]} ${ModelsSection_module_css_default["selectInput"]}`,
+										value: addTarget.provider,
+										"aria-label": t("provider"),
+										onChange: (event) => {
+											const row = addable.find((candidate) => candidate.entry.provider === event.target.value);
+											/* v8 ignore next -- the select only lists addable rows */
+											if (row === void 0) return;
+											setEditing(targetOf(row));
+										},
+										children: addable.map((row) => (0, react_jsx_runtime.jsx)("option", {
+											value: row.entry.provider,
+											children: row.entry.displayName
+										}, row.entry.provider))
+									})]
+								}),
+								(0, react_jsx_runtime.jsx)(ProviderEditor, {
+									provider: addTarget.provider,
+									displayName: addTarget.displayName,
+									hideTitle: true,
+									namespace: addNamespace,
+									schema,
+									settingsPath: addTarget.settingsPath,
+									operations,
+									t,
+									readOnly: !state.writable,
+									onClose: (changed) => {
+										closeEditor(changed, addTarget);
+									}
+								}, addTarget.provider),
+								addRow === void 0 ? null : renderSlot("settings.models.provider-card", {
+									provider: addRow.entry,
+									configured: addRow.configured,
+									keyConfigured: keyConfiguredOf(addRow)
+								}, { entryKey: addRow.entry.settingsNs })
+							]
 						}) : declaring ? (0, react_jsx_runtime.jsx)("div", {
 							className: ModelsSection_module_css_default["addCard"],
 							children: (0, react_jsx_runtime.jsx)(CustomProviderCard, {
@@ -2020,7 +2121,7 @@ window.__ModuleLoader__.load({
 								protocols,
 								/* v8 ignore next -- the card only opens from a button disabled without this namespace */
 								revision: state.namespaces.get("llm-pi-ai")?.revision ?? 0,
-								api,
+								operations,
 								t,
 								readOnly: !state.writable,
 								onClose: (changed) => {
@@ -2058,6 +2159,7 @@ window.__ModuleLoader__.load({
 							})]
 						})
 					}),
+					renderSlot("settings.models.footer", {}),
 					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
 						open: deleteTarget !== void 0,
 						onClose: closeDelete,
@@ -2099,9 +2201,9 @@ window.__ModuleLoader__.load({
 		}
 		var OnboardingModal_module_css_default = {
 			"body": "jLrgrW_body",
-			"title": "jLrgrW_title",
+			"content": "jLrgrW_content",
 			"dialog": "jLrgrW_dialog",
-			"content": "jLrgrW_content"
+			"title": "jLrgrW_title"
 		};
 		//#endregion
 		//#region lib/types/client/OnboardingModal.js
@@ -2173,7 +2275,7 @@ window.__ModuleLoader__.load({
 		* the onboarding plugin's shared modal, so the key is entered once.
 		*/
 		/* v8 ignore next 3 -- closed-union defaults only defend future source widening */
-		function assertNever(_value) {
+		function assertNever$1(_value) {
 			throw new Error("unexpected DeepSeek onboarding state");
 		}
 		/**
@@ -2183,7 +2285,7 @@ window.__ModuleLoader__.load({
 		* @returns the onboarding modal or null when onboarding needs no intervention.
 		*/
 		function DeepSeekOnboardingDialog(props) {
-			const { complete, controller, useModels, api, t } = props;
+			const { complete, controller, useModels, operations, schema, t } = props;
 			const state = useModels((snapshot) => snapshot);
 			const readiness = onboardingReadiness(state);
 			(0, react.useEffect)(() => {
@@ -2199,7 +2301,7 @@ window.__ModuleLoader__.load({
 				case "unavailable": return null;
 				case "credential-missing": break;
 				/* v8 ignore next -- every current readiness variant is handled above */
-				default: return assertNever(readiness);
+				default: return assertNever$1(readiness);
 			}
 			const row = state.rows.find((candidate) => candidate.entry.provider === "deepseek-official" && candidate.entry.settingsNs === "llm-deepseek" && candidate.entry.settingsPath.length === 0);
 			const namespace = state.namespaces.get("llm-deepseek");
@@ -2223,17 +2325,18 @@ window.__ModuleLoader__.load({
 						provider: row.entry.provider,
 						displayName: row.entry.displayName,
 						namespace,
+						schema,
 						settingsPath: row.entry.settingsPath,
-						api,
+						operations,
 						t,
 						readOnly: false,
 						hideTitle: true,
 						credentialOnly: true,
 						credentialRequired: true,
 						autoFocusCredential: true,
-						cancelLabel: "onboardingLater",
-						submitLabel: "onboardingSave",
-						submitBusyLabel: "onboardingSaving",
+						cancelLabelKey: "onboardingLater",
+						submitLabelKey: "onboardingSave",
+						submitBusyLabelKey: "onboardingSaving",
 						onClose: finishCredential
 					})
 				})]
@@ -2251,10 +2354,10 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var WelcomeNotice_module_css_default = {
-			"error": "t1T8VW_error",
-			"primary": "t1T8VW_primary",
+			"actions": "t1T8VW_actions",
 			"copy": "t1T8VW_copy",
-			"actions": "t1T8VW_actions"
+			"error": "t1T8VW_error",
+			"primary": "t1T8VW_primary"
 		};
 		//#endregion
 		//#region lib/types/client/WelcomeNotice.js
@@ -2323,135 +2426,204 @@ window.__ModuleLoader__.load({
 		* again. The acknowledgement is compared for exact equality.
 		*/
 		const WELCOME_NOTICE_VERSION = "2026-08-13.1";
-		/** The complete editable internal-testing notice in both supported GUI locales. */
-		const WELCOME_NOTICE_COPY = {
-			zh: {
-				title: "内测声明",
-				body: "DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSeek Harness 的核心插件以及基础 API 都会在接下来的一段时间内快速迭代、持续演化。\n\n我们期待与全球开发者一起，在开源、开放、可复用、可组合的基础设施之上，共同探索智能上限。欢迎全球 Harness 开发者加入 DSH 插件生态。",
-				continueLabel: "继续"
-			},
-			en: {
-				title: "Internal Testing Notice",
-				body: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
-				continueLabel: "Continue"
-			}
-		};
 		//#endregion
 		//#region lib/types/client/welcome-store.js
-		/** Welcome-notice state, durable when the browser may use Host settings. */
-		function messageOf(error) {
-			return error instanceof Error ? error.message : String(error);
+		/**
+		* Welcome-notice state derived from the welcome settings scope. The scope is
+		* the transport: a loopback browser follows the durable Host section, while a
+		* remote browser's memory-mode scope never answers and the acknowledgement
+		* stays process-local here.
+		*/
+		/**
+		* Accept any object section verbatim; a malformed durable value reads as an
+		* empty section, so the notice treats it as unacknowledged instead of leaving
+		* the scope stuck on its previous value.
+		* @param section - the wire section value.
+		* @returns the section object, or an empty one for non-object values.
+		*/
+		function decodeWelcomeSection(section) {
+			return typeof section === "object" && section !== null && !Array.isArray(section) ? section : {};
 		}
-		function acknowledgementOf(view) {
-			if (typeof view.value !== "object" || view.value === null) return void 0;
-			const value = view.value[WELCOME_NOTICE_ACK_FIELD];
-			return typeof value === "string" ? value : void 0;
+		/* v8 ignore next 3 -- closed-union default only defends future source widening */
+		function assertNever(_value) {
+			throw new Error("unexpected welcome settings status");
 		}
 		/** Coordinates durable Host acknowledgement or a process-local remote fallback. */
 		var WelcomeNoticeStore = class {
-			api;
-			persistence;
+			scope;
 			/** uSES-safe state source shared by the registered welcome step. */
-			store = (0, _deepseek_ai_dsh_client_runtime_client.createSnapshotStore)({
+			store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({
 				status: "idle",
 				acknowledged: false,
 				error: null
 			});
-			generation = 0;
+			localAcknowledged = false;
+			saving = false;
+			following;
 			/**
-			* @param api - settings wire face used for durable reads and writes.
-			* @param persistence - remote browsers use memory because settings is loopback-only.
+			* @param scope - the welcome settings namespace scope; its memory mode is
+			* what keeps a remote browser process-local.
 			*/
-			constructor(api, persistence = "host") {
-				this.api = api;
-				this.persistence = persistence;
-			}
-			/** Load the acknowledgement from Host settings or initialize process-local state. */
-			async load() {
-				const generation = ++this.generation;
-				if (this.persistence === "memory") {
-					this.store.update((state) => {
-						state.status = "ready";
-						state.error = null;
-					});
-					return;
-				}
-				this.store.update((state) => {
-					state.status = "loading";
-					state.error = null;
-				});
-				try {
-					const response = await this.api.settings.describe({});
-					if (!response.result.ok) throw new Error(response.result.error.message);
-					const view = response.result.value.namespaces.find((candidate) => candidate.ns === WELCOME_NOTICE_SETTINGS_NAMESPACE);
-					if (view === void 0) throw new Error("welcome acknowledgement settings are unavailable");
-					if (generation !== this.generation) return;
-					this.store.update((state) => {
-						state.status = "ready";
-						state.acknowledged = acknowledgementOf(view) === WELCOME_NOTICE_VERSION;
-						state.error = null;
-					});
-				} catch (error) {
-					if (generation !== this.generation) return;
-					this.store.update((state) => {
-						state.status = "error";
-						state.acknowledged = false;
-						state.error = messageOf(error);
-					});
-				}
+			constructor(scope) {
+				this.scope = scope;
 			}
 			/**
-			* Persist this copy version, or advance only this process for a remote browser.
-			* @returns true when the selected persistence mode accepted the acknowledgement.
+			* Begin following the bound scope (idempotent) and publish its current answer.
+			* @returns settlement after the current answer is published.
+			*/
+			load() {
+				this.following ??= this.scope.subscribe(() => {
+					this.derive();
+				});
+				this.derive();
+				return Promise.resolve();
+			}
+			/**
+			* Persist this copy version, or advance only this process for a remote
+			* browser. Success is judged against the state the write left behind, so a
+			* refused or failed write reports false after its recovery read settles.
+			* @returns true when the selected persistence mode holds the acknowledgement.
 			*/
 			async acknowledge() {
-				const generation = ++this.generation;
-				if (this.persistence === "memory") {
-					this.store.update((state) => {
-						state.status = "ready";
-						state.acknowledged = true;
-						state.error = null;
-					});
+				if (this.scope.getSnapshot().mode === "memory") {
+					this.localAcknowledged = true;
+					this.derive();
 					return true;
 				}
+				this.saving = true;
 				this.store.update((state) => {
 					state.status = "saving";
 					state.error = null;
 				});
 				try {
-					const response = await this.api.settings.mutate({
-						ns: WELCOME_NOTICE_SETTINGS_NAMESPACE,
-						ops: [{
-							op: "set",
-							path: [WELCOME_NOTICE_ACK_FIELD],
-							value: WELCOME_NOTICE_VERSION
-						}]
-					});
-					if (!response.result.ok) throw new Error(response.result.error.message);
-					if (generation === this.generation) this.store.update((state) => {
+					await this.scope.set(WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_VERSION);
+				} finally {
+					this.saving = false;
+				}
+				this.derive();
+				const { acknowledged } = this.store.getSnapshot();
+				if (!acknowledged) this.store.update((state) => {
+					state.status = "error";
+					state.error = "the acknowledgement did not persist";
+				});
+				return acknowledged;
+			}
+			/** Stop following the scope. */
+			dispose() {
+				this.following?.();
+				this.following = void 0;
+			}
+			derive() {
+				if (this.saving) return;
+				const scope = this.scope.getSnapshot();
+				if (scope.mode === "memory") {
+					this.store.update((state) => {
 						state.status = "ready";
-						state.acknowledged = true;
+						state.acknowledged = this.localAcknowledged;
 						state.error = null;
 					});
-					return true;
-				} catch (error) {
-					if (generation === this.generation) this.store.update((state) => {
-						state.status = "error";
-						state.acknowledged = false;
-						state.error = messageOf(error);
-					});
-					return false;
+					return;
+				}
+				switch (scope.status) {
+					case "loading":
+						this.store.update((state) => {
+							state.status = "loading";
+							state.error = null;
+						});
+						return;
+					case "unavailable":
+						this.store.update((state) => {
+							state.status = "error";
+							state.acknowledged = false;
+							state.error = "welcome acknowledgement settings are unavailable";
+						});
+						return;
+					case "ready": {
+						const acknowledged = scope.value?.[WELCOME_NOTICE_ACK_FIELD] === WELCOME_NOTICE_VERSION;
+						this.store.update((state) => {
+							state.status = "ready";
+							state.acknowledged = acknowledged;
+							state.error = null;
+						});
+						return;
+					}
+					/* v8 ignore next -- every current settings scope status is handled above */
+					default: return assertNever(scope.status);
 				}
 			}
 		};
+		//#endregion
+		//#region lib/types/client/operations.js
 		/**
-		* Refresh only after welcome state has left idle. A memory-mode load retains
-		* acknowledgement so reconnect does not reopen a process-local notice.
-		* @param controller - welcome state owner whose current status decides whether to load.
+		* The Host reads and writes the Models cards perform, as callbacks built in the
+		* plugin body. Cards receive these instead of a context: the outcomes name what
+		* a card renders — a stored view, a stale revision, a refusal message — so the
+		* failure codes and Remote namespaces stay in the apply world.
 		*/
-		function refreshWelcomeIfLoaded(controller) {
-			if (controller.store.getSnapshot().status === "idle") return;
-			controller.load();
+		/**
+		* Bind the page's Host operations to the plugin's own Remote namespaces.
+		* @param ctx - the page plugin's context, which declares `remote.credentials`,
+		* `remote.llm`, and `remote.settings` in its own `inject`.
+		* @returns the callbacks the section and its cards are injected with.
+		*/
+		function createModelsOperations(ctx) {
+			return {
+				describeCredential: async (ref) => {
+					const response = await ctx.remote.credentials.describe([ref]);
+					return response.ok ? response.value[ref] : void 0;
+				},
+				storeCredential: async (ref, value) => {
+					const response = await ctx.remote.credentials.set(ref, value);
+					return response.ok ? void 0 : response.error.message;
+				},
+				removeCredential: async (ref) => {
+					const response = await ctx.remote.credentials.unset(ref);
+					return response.ok ? void 0 : response.error.message;
+				},
+				writeSettings: async (ns, ops, expectedRevision) => {
+					const response = await ctx.remote.settings.mutate(ns, ops, expectedRevision);
+					if (response.ok) return {
+						kind: "written",
+						view: response.value
+					};
+					const { code, message } = response.error;
+					return code === "settings/conflict" ? {
+						kind: "conflict",
+						message
+					} : {
+						kind: "refused",
+						message
+					};
+				},
+				discoverModels: async (settingsNs, request) => {
+					const response = await ctx.remote.llm.discoverModels(settingsNs, request);
+					return response.ok ? {
+						kind: "found",
+						models: response.value
+					} : {
+						kind: "refused",
+						message: response.error.message
+					};
+				}
+			};
+		}
+		//#endregion
+		//#region lib/types/client/schema-operations.js
+		/**
+		* Hide the Cordis service identity behind bound schema callbacks.
+		* @param service - settings-owned schema service available in the apply context.
+		* @returns callbacks that cannot expose the service context to React components.
+		*/
+		function createSettingsSchemaOperations(service) {
+			return {
+				rehydrate: (serialized) => service.rehydrate(serialized),
+				validate: (schema, draft) => service.validate(schema, draft),
+				nodeAtPath: (root, path) => service.nodeAtPath(root, path),
+				getPath: (value, path) => service.getPath(value, path),
+				hasPath: (value, path) => service.hasPath(value, path),
+				setPath: (root, path, value) => service.setPath(root, path, value),
+				deletePath: (root, path) => service.deletePath(root, path)
+			};
 		}
 		//#endregion
 		//#region lib/types/client/locales.js
@@ -2528,6 +2700,10 @@ window.__ModuleLoader__.load({
 			fetchEmpty: "The provider listed no models. Add them by hand.",
 			fetchTitle: "Choose models to add",
 			fetchDescription: "These are the models this provider has available. Choose the ones to add.",
+			fetchSearch: "Search models",
+			fetchNoMatches: "No matching models.",
+			fetchSelectAll: "Select all",
+			fetchDeselectAll: "Deselect all",
 			fetchAdopt: "Add selected",
 			customAdd: "Add a custom provider",
 			customTitle: "Custom provider",
@@ -2541,11 +2717,13 @@ window.__ModuleLoader__.load({
 			customApiUnset: "Not selected",
 			customNeedsBaseUrl: "A custom provider needs a base URL.",
 			customNeedsModels: "A custom provider needs at least one model.",
+			customBaseUrlPlaceholder: "https://gateway.example/v1",
+			settingsPathUnresolvable: "unresolvable settings path",
 			create: "Create provider",
 			creating: "Creating…",
-			welcomeTitle: WELCOME_NOTICE_COPY.en.title,
-			welcomeBody: WELCOME_NOTICE_COPY.en.body,
-			welcomeContinue: WELCOME_NOTICE_COPY.en.continueLabel,
+			welcomeTitle: "Internal Testing Notice",
+			welcomeBody: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
+			welcomeContinue: "Continue",
 			welcomeError: "The acknowledgement could not be saved. Please try again.",
 			onboardingTitle: "Add an API key to get started",
 			onboardingDescription: "Configure the official DeepSeek provider to start building.",
@@ -2626,6 +2804,10 @@ window.__ModuleLoader__.load({
 			fetchEmpty: "该提供方没有列出任何模型，请手动添加。",
 			fetchTitle: "选择要添加的模型",
 			fetchDescription: "以下是模型提供方的可用模型，勾选要添加的模型。",
+			fetchSearch: "搜索模型",
+			fetchNoMatches: "没有匹配的模型。",
+			fetchSelectAll: "全选",
+			fetchDeselectAll: "取消全选",
 			fetchAdopt: "添加所选",
 			customAdd: "添加自定义提供方",
 			customTitle: "自定义提供方",
@@ -2639,11 +2821,13 @@ window.__ModuleLoader__.load({
 			customApiUnset: "未选择",
 			customNeedsBaseUrl: "自定义提供方需要填写 API 地址。",
 			customNeedsModels: "自定义提供方至少需要一个模型。",
+			customBaseUrlPlaceholder: "https://gateway.example/v1",
+			settingsPathUnresolvable: "无法解析设置路径",
 			create: "创建提供方",
 			creating: "创建中…",
-			welcomeTitle: WELCOME_NOTICE_COPY.zh.title,
-			welcomeBody: WELCOME_NOTICE_COPY.zh.body,
-			welcomeContinue: WELCOME_NOTICE_COPY.zh.continueLabel,
+			welcomeTitle: "内测声明",
+			welcomeBody: "DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSeek Harness 的核心插件以及基础 API 都会在接下来的一段时间内快速迭代、持续演化。\n\n我们期待与全球开发者一起，在开源、开放、可复用、可组合的基础设施之上，共同探索智能上限。欢迎全球 Harness 开发者加入 DSH 插件生态。",
+			welcomeContinue: "继续",
 			welcomeError: "暂时无法保存确认状态，请重试。",
 			onboardingTitle: "添加一个 API Key 开始使用",
 			onboardingDescription: "配置 DeepSeek 官方模型，即可开始使用。",
@@ -2673,8 +2857,12 @@ window.__ModuleLoader__.load({
 		const inject = [
 			"slots",
 			"locale",
-			"connection",
-			"remote"
+			"remote",
+			"remote.credentials",
+			"remote.llm",
+			"remote.settings",
+			"settingsScope",
+			"settingsSchema"
 		];
 		/**
 		* Register the Models section once the `settings.section` declaration is on
@@ -2687,23 +2875,28 @@ window.__ModuleLoader__.load({
 				zh,
 				en
 			}), "ui-settings-models: copy dictionaries");
-			const connection = ctx.get("connection");
-			const controller = new ModelsSettingsStore(connection.api);
-			const useSnapshot = (0, _deepseek_ai_dsh_client_web_react.bindSnapshotSelector)(controller.store);
+			const schema = createSettingsSchemaOperations(ctx.settingsSchema);
+			const operations = createModelsOperations(ctx);
+			const controller = new ModelsSettingsStore(ctx, schema, ctx.settingsScope.describe());
 			const t = ctx.locale.bind(NS);
 			const injected = () => ({
 				controller,
-				useSnapshot,
-				api: connection.api,
+				hooks: { snapshot: controller.store },
+				operations,
+				schema,
 				t
 			});
 			const deepSeekOnboardingInjected = () => ({
 				controller,
 				hooks: { models: controller.store },
-				api: connection.api,
+				operations,
+				schema,
 				t
 			});
-			const welcomeController = new WelcomeNoticeStore(connection.api, "host");
+			const welcomeController = new WelcomeNoticeStore(ctx.settingsScope.bind({
+				namespace: WELCOME_NOTICE_SETTINGS_NAMESPACE,
+				decode: decodeWelcomeSection
+			}));
 			const welcomeInjected = () => ({
 				controller: welcomeController,
 				hooks: { welcome: welcomeController.store },
@@ -2713,20 +2906,16 @@ window.__ModuleLoader__.load({
 				const refreshModels = () => {
 					refreshIfLoaded(controller);
 				};
-				const refreshAll = () => {
-					refreshModels();
-					refreshWelcomeIfLoaded(welcomeController);
-				};
 				const disposers = [
-					ctx.remote.$on("settings/document-updated", (ns) => {
+					ctx.remote.$on("settings/document-updated", () => {
 						refreshModels();
-						if (ns === "ui-onboarding") refreshWelcomeIfLoaded(welcomeController);
 					}),
-					ctx.remote.$on("credentials/updated", refreshModels),
+					ctx.remote.$on("credentials/reference-updated", refreshModels),
 					ctx.remote.$on("llm/adapters-updated", refreshModels),
-					ctx.on("connection/reset", refreshAll)
+					ctx.on("connection/reset", refreshModels)
 				];
 				return () => {
+					welcomeController.dispose();
 					for (const dispose of disposers) dispose();
 				};
 			}, "ui-settings-models: pushed invalidations");
@@ -2735,7 +2924,17 @@ window.__ModuleLoader__.load({
 				id: "models",
 				order: 10,
 				label: () => t("nav"),
-				inject: injected
+				inject: injected,
+				children: {
+					"settings.models.provider-card": {
+						kind: "keyed",
+						scope: "root"
+					},
+					"settings.models.footer": {
+						kind: "list",
+						scope: "root"
+					}
+				}
 			}, ModelsSection));
 		}
 		//#endregion

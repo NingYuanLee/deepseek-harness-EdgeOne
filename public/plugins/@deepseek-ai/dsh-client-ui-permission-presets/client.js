@@ -7,11 +7,75 @@ window.__ModuleLoader__.load({
 		let react_jsx_runtime = require("react/jsx-runtime");
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
-		let _deepseek_ai_dsh_client_runtime_client = require("@deepseek-ai/dsh-client-runtime/client");
-		let _deepseek_ai_dsh_client_schema_form = require("@deepseek-ai/dsh-client-schema-form");
+		let _deepseek_ai_dsh_client_store = require("@deepseek-ai/dsh-client-store");
+		//#region lib/types/client/locales.js
+		/** `settings.permission` namespace dictionaries (the Permission row's copy). */
+		/** Simplified Chinese dictionary (the key-set source of truth). */
+		const zh = {
+			"title": "权限",
+			"description": "选择新会话在 EdgeOne Makers 沙箱中的默认权限：只读、读写文件，或包含命令与预览的 Full access",
+			"loading": "加载中",
+			"unavailable": "不可用",
+			"preset.readOnly": "仅可查看",
+			"preset.workspaceWrite": "工作区内修改",
+			"preset.fullAccess": "完全权限",
+			"confirm.title": "确认启用完全权限？",
+			"confirm.description": "启用完全权限后，新会话可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任后续任务时使用。",
+			"confirm.acknowledge": "我已了解风险，并愿意继续",
+			"confirm.cancel": "取消",
+			"confirm.enable": "启用完全权限"
+		};
+		/** English dictionary, checked complete against the zh key set. */
+		const en = {
+			"title": "Permission",
+			"description": "Choose the default Makers sandbox permission for new sessions: read-only, file write, or Full access with commands and preview",
+			"loading": "Loading",
+			"unavailable": "Unavailable",
+			"preset.readOnly": "Read Only",
+			"preset.workspaceWrite": "Workspace Write",
+			"preset.fullAccess": "Full access",
+			"confirm.title": "Enable Full access?",
+			"confirm.description": "Full access lets new sessions run commands and publish previews in the EdgeOne Makers sandbox without extra confirmation. The local machine is still never accessible. Only use it when you trust subsequent tasks.",
+			"confirm.acknowledge": "I understand the risks and want to continue",
+			"confirm.cancel": "Cancel",
+			"confirm.enable": "Enable Full access"
+		};
+		/** Simplified Chinese dictionary for the current-session popup gate. */
+		const accessZh = {
+			"preset.readOnly": "仅可查看",
+			"preset.workspaceWrite": "工作区内修改",
+			"preset.fullAccess": "完全权限",
+			"confirm.title": "确认启用完全权限？",
+			"confirm.description": "启用完全权限后，智能体可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任当前任务时使用。",
+			"confirm.acknowledge": "我已了解风险，并愿意继续",
+			"confirm.cancel": "取消",
+			"confirm.enable": "启用完全权限"
+		};
+		/** English dictionary for the current-session popup gate. */
+		const accessEn = {
+			"preset.readOnly": "Read Only",
+			"preset.workspaceWrite": "Workspace Write",
+			"preset.fullAccess": "Full access",
+			"confirm.title": "Enable Full access?",
+			"confirm.description": "Full access lets the agent run commands and publish previews in the EdgeOne Makers sandbox without extra confirmation. The local machine is still never accessible. Only use it when you trust the current task.",
+			"confirm.acknowledge": "I understand the risks and want to continue",
+			"confirm.cancel": "Cancel",
+			"confirm.enable": "Enable Full access"
+		};
+		//#endregion
 		//#region lib/types/client/presentation.js
 		/** Machine value of the preset that requires an explicit GUI risk gate. */
 		const FULL_ACCESS_PRESET = "danger-full-access";
+		const PRESET_LABEL_KEYS = new Map([
+			["read-only", "preset.readOnly"],
+			["workspace-write", "preset.workspaceWrite"],
+			[FULL_ACCESS_PRESET, "preset.fullAccess"]
+		]);
+		const DEFAULT_PRESET_LABELS = {
+			"preset.readOnly": en["preset.readOnly"],
+			"preset.workspaceWrite": en["preset.workspaceWrite"],
+			"preset.fullAccess": en["preset.fullAccess"]
+		};
 		/**
 		* Convert conventional kebab-case preset names into user-facing title case.
 		* @param name - host-supplied preset label or key.
@@ -25,14 +89,17 @@ window.__ModuleLoader__.load({
 		* Render a permission preset under its product label.
 		* @param value - preset machine value.
 		* @param name - host-supplied preset name.
-		* @returns the Full access product label or the conventional display name.
+		* @param t - optional locale dictionary lookup for built-in product labels.
+		* @returns the built-in product label or the conventional display name.
 		*/
-		function displayPermissionPreset(value, name) {
-			return value === "danger-full-access" ? "Full access" : displayPresetName(name);
+		function displayPermissionPreset(value, name, t) {
+			const key = PRESET_LABEL_KEYS.get(value);
+			if (key !== void 0 && (name === value || name === DEFAULT_PRESET_LABELS[key])) return t?.(key) ?? DEFAULT_PRESET_LABELS[key];
+			return displayPresetName(name);
 		}
 		//#endregion
 		//#region \0dsh-css:/home/runner/work/deepseek-harness/deepseek-harness/packages/client/ui-permission-presets/src/client/PermissionRow.module.css.mjs
-		const css = ".oY77xG_row{border-bottom:1px solid var(--dsw-alias-border-l2);align-items:center;gap:8px;padding:16px 0;display:flex}.oY77xG_rowText{flex-direction:column;flex:1;gap:4px;min-width:0;padding-right:48px;display:flex}.oY77xG_title{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:400;line-height:22px}.oY77xG_desc{color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:400;line-height:18px}.oY77xG_selector{background:var(--dsw-alias-bg-module-platform);height:36px;font:inherit;color:var(--dsw-alias-label-primary);cursor:pointer;border:none;border-radius:18px;align-items:center;gap:12px;padding:0 14px;font-size:14px;line-height:22px;display:inline-flex}.oY77xG_selector:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.oY77xG_selector:disabled{cursor:default}.oY77xG_chevron{flex:none}";
+		const css = ".oY77xG_row{border-bottom:.5px solid var(--dsw-alias-border-l2);align-items:center;gap:8px;padding:16px 0;display:flex}.oY77xG_rowText{flex-direction:column;flex:1;gap:4px;min-width:0;padding-right:48px;display:flex}.oY77xG_title{color:var(--dsw-alias-label-primary);font-size:14px;font-weight:400;line-height:22px}.oY77xG_desc{color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:400;line-height:18px}.oY77xG_selector{background:var(--dsw-alias-bg-module-platform);height:36px;font:inherit;color:var(--dsw-alias-label-primary);cursor:pointer;border:none;border-radius:18px;align-items:center;gap:12px;padding:0 14px;font-size:14px;line-height:22px;display:inline-flex}.oY77xG_selector:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}.oY77xG_selector:disabled{cursor:default}.oY77xG_chevron{flex:none}";
 		const tagId = "@deepseek-ai/dsh-client-ui-permission-presets/PermissionRow.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -42,12 +109,12 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var PermissionRow_module_css_default = {
-			"selector": "oY77xG_selector",
-			"row": "oY77xG_row",
 			"chevron": "oY77xG_chevron",
+			"desc": "oY77xG_desc",
+			"row": "oY77xG_row",
 			"rowText": "oY77xG_rowText",
-			"title": "oY77xG_title",
-			"desc": "oY77xG_desc"
+			"selector": "oY77xG_selector",
+			"title": "oY77xG_title"
 		};
 		//#endregion
 		//#region lib/types/client/PermissionRow.js
@@ -78,7 +145,8 @@ window.__ModuleLoader__.load({
 			if (state.status === "unavailable") return null;
 			const selected = state.options.find((option) => option.id === state.currentValue);
 			const busy = state.status === "loading" || state.status === "saving" || confirmingFullAccess;
-			const label = selected?.label ?? (busy ? t("loading") : t("unavailable"));
+			const optionLabel = (option) => displayPermissionPreset(option.id, option.label, t);
+			const label = selected !== void 0 ? optionLabel(selected) : busy ? t("loading") : t("unavailable");
 			const description = state.error ?? t("description");
 			return (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [(0, react_jsx_runtime.jsxs)("div", {
 				className: PermissionRow_module_css_default.row,
@@ -99,7 +167,7 @@ window.__ModuleLoader__.load({
 					},
 					items: state.options.map((option) => ({
 						id: option.id,
-						label: option.label
+						label: optionLabel(option)
 					})),
 					selectedId: state.currentValue,
 					onSelect: (id) => {
@@ -132,6 +200,7 @@ window.__ModuleLoader__.load({
 				description: t("confirm.description"),
 				acknowledgeLabel: t("confirm.acknowledge"),
 				cancelLabel: t("confirm.cancel"),
+				closeLabel: t("close"),
 				confirmLabel: t("confirm.enable"),
 				acknowledged,
 				disabled: !state.writable || state.status === "saving",
@@ -148,66 +217,26 @@ window.__ModuleLoader__.load({
 			})] });
 		}
 		//#endregion
-		//#region lib/types/client/locales.js
-		/** `settings.permission` namespace dictionaries (the Permission row's copy). */
-		/** Simplified Chinese dictionary (the key-set source of truth). */
-		const zh = {
-			"title": "权限",
-			"description": "选择新会话在 EdgeOne Makers 沙箱中的默认权限：只读、读写文件，或包含命令与预览的 Full access",
-			"loading": "加载中",
-			"unavailable": "不可用",
-			"confirm.title": "确认启用 Full access？",
-			"confirm.description": "启用 Full access 后，新会话可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任后续任务时使用。",
-			"confirm.acknowledge": "我已了解风险，并愿意继续",
-			"confirm.cancel": "取消",
-			"confirm.enable": "启用 Full access"
-		};
-		/** English dictionary, checked complete against the zh key set. */
-		const en = {
-			"title": "Permission",
-			"description": "Choose the default Makers sandbox permission for new sessions: read-only, file write, or Full access with commands and preview",
-			"loading": "Loading",
-			"unavailable": "Unavailable",
-			"confirm.title": "Enable Full access?",
-			"confirm.description": "Full access lets new sessions run commands and publish previews in the EdgeOne Makers sandbox without extra confirmation. The local machine is still never accessible. Only use it when you trust subsequent tasks.",
-			"confirm.acknowledge": "I understand the risks and want to continue",
-			"confirm.cancel": "Cancel",
-			"confirm.enable": "Enable Full access"
-		};
-		/** Simplified Chinese dictionary for the current-session popup gate. */
-		const accessZh = {
-			"confirm.title": "确认启用 Full access？",
-			"confirm.description": "启用 Full access 后，agent 可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任当前任务时使用。",
-			"confirm.acknowledge": "我已了解风险，并愿意继续",
-			"confirm.cancel": "取消",
-			"confirm.enable": "启用 Full access"
-		};
-		/** English dictionary for the current-session popup gate. */
-		const accessEn = {
-			"confirm.title": "Enable Full access?",
-			"confirm.description": "Full access lets the agent run commands and publish previews in the EdgeOne Makers sandbox without extra confirmation. The local machine is still never accessible. Only use it when you trust the current task.",
-			"confirm.acknowledge": "I understand the risks and want to continue",
-			"confirm.cancel": "Cancel",
-			"confirm.enable": "Enable Full access"
-		};
-		//#endregion
 		//#region lib/types/client/settings-store.js
 		/**
-		* Permission default-settings controller. The host descriptor supplies the
-		* current value and the dynamic preset enum; writes target only
-		* `defaultPreset` and carry the descriptor revision.
+		* Permission default-settings controller. The permission descriptor comes
+		* from the shared describe mirror (the dynamic preset enum lives in the
+		* namespace schema, which per-namespace scopes do not carry); writes target
+		* only `defaultPreset`, carry the descriptor revision, and fold their answer
+		* back into the mirror.
 		*/
 		/** Permission's settings namespace on the host wire. */
 		const PERMISSION_SETTINGS_NS = "permission";
 		/**
 		* Read the dynamic preset enum encoded by the host's `defaultPreset` schema.
 		* @param view - permission namespace descriptor.
+		* @param schema - settings schema operations.
 		* @returns current value and selectable options.
 		*/
-		function permissionDefaultOf(view) {
+		function permissionDefaultOf(view, schema) {
 			const value = view.value?.defaultPreset;
 			if (typeof value !== "string") throw new Error("permission settings has no defaultPreset value");
-			const node = (0, _deepseek_ai_dsh_client_schema_form.nodeAtPath)((0, _deepseek_ai_dsh_client_schema_form.rehydrateSchema)(view.schema), ["defaultPreset"]);
+			const node = schema.nodeAtPath(schema.rehydrate(view.schema), ["defaultPreset"]);
 			if (node === void 0) throw new Error("permission settings schema has no defaultPreset field");
 			const options = (node.type === "union" ? node.list ?? [] : [node]).flatMap((candidate) => {
 				const choice = candidate;
@@ -224,11 +253,13 @@ window.__ModuleLoader__.load({
 				options
 			};
 		}
-		/** Controller joining Settings reads, writes, and pushed invalidations. */
+		/** Controller deriving the row from the shared mirror and writing the default through it. */
 		var PermissionPresetSettingsController = class {
-			api;
+			describeFace;
+			ctx;
+			schema;
 			/** Row snapshot consumed through a bound selector hook. */
-			store = (0, _deepseek_ai_dsh_client_runtime_client.createSnapshotStore)({
+			store = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)({
 				status: "idle",
 				error: null,
 				writable: false,
@@ -236,91 +267,116 @@ window.__ModuleLoader__.load({
 				options: [],
 				revision: 0
 			});
-			generation = 0;
-			view;
-			/** @param api - Settings wire face. */
-			constructor(api) {
-				this.api = api;
+			following;
+			saving = false;
+			disposed = false;
+			/**
+			* @param describeFace - the shared mirror's read/fold face (descriptor and schema source).
+			* @param ctx - the row plugin's context, whose `remote.settings` namespace
+			* carries the `defaultPreset` write.
+			* @param schema - settings-owned schema operations.
+			*/
+			constructor(describeFace, ctx, schema) {
+				this.describeFace = describeFace;
+				this.ctx = ctx;
+				this.schema = schema;
 			}
 			/**
-			* Refresh the permission descriptor. Latest request wins.
-			* @returns nothing; {@link store} carries success or failure.
+			* Begin following the mirror (idempotent) and reflect its current answer.
+			* @returns settlement once the snapshot reflects the mirror.
 			*/
 			async load() {
-				const generation = ++this.generation;
+				if (this.disposed) return;
+				this.following ??= this.describeFace.subscribe(() => {
+					this.derive();
+				});
 				this.store.update((state) => {
 					state.status = "loading";
 					state.error = null;
 				});
-				try {
-					const response = await this.api.settings.describe({});
-					if (!response.result.ok) throw new Error(response.result.error.message);
-					if (generation !== this.generation) return;
-					const view = response.result.value.namespaces.find((entry) => entry.ns === PERMISSION_SETTINGS_NS);
-					if (view === void 0) {
-						this.view = void 0;
-						this.store.update((state) => {
-							state.status = "unavailable";
-							state.writable = false;
-							state.currentValue = "";
-							state.options = [];
-						});
-						return;
-					}
-					this.accept(view, response.result.value.writable);
-				} catch (error) {
-					if (generation !== this.generation) return;
-					this.fail(error);
-				}
+				await this.describeFace.ensure();
+				this.derive();
 			}
 			/**
 			* Persist one preset as the default for subsequently created sessions.
+			* A selection made while one is already saving is ignored — the row's
+			* control is disabled during the save, so this only drops programmatic
+			* double-submits rather than user intent.
 			* @param preset - advertised preset key.
 			* @returns nothing; {@link store} carries success or failure.
 			*/
 			async select(preset) {
-				const view = this.view;
 				const state = this.store.getSnapshot();
-				if (view === void 0 || !state.writable) return;
-				const generation = ++this.generation;
+				const view = this.describeFace.getSnapshot().view?.namespaces.find((entry) => entry.ns === PERMISSION_SETTINGS_NS);
+				if (view === void 0 || !state.writable || this.saving) return;
+				this.saving = true;
 				this.store.update((draft) => {
 					draft.status = "saving";
 					draft.error = null;
 				});
+				let response;
 				try {
-					const response = await this.api.settings.mutate({
-						ns: PERMISSION_SETTINGS_NS,
-						ops: [{
-							op: "set",
-							path: ["defaultPreset"],
-							value: preset
-						}],
-						expectedRevision: view.revision
+					response = await this.ctx.remote.settings.mutate(PERMISSION_SETTINGS_NS, [{
+						op: "set",
+						path: ["defaultPreset"],
+						value: preset
+					}], view.revision);
+				} finally {
+					this.saving = false;
+				}
+				if (this.disposed) return;
+				if (!response.ok) {
+					this.fail(response.error);
+					return;
+				}
+				this.describeFace.acceptView(response.value);
+			}
+			/** Stop following the mirror; later publishes leave the snapshot alone. */
+			dispose() {
+				this.disposed = true;
+				this.following?.();
+				this.following = void 0;
+			}
+			derive() {
+				if (this.disposed || this.saving) return;
+				const mirrored = this.describeFace.getSnapshot();
+				if (mirrored.status === "unavailable") {
+					this.store.update((state) => {
+						state.status = "unavailable";
+						state.writable = false;
+						state.currentValue = "";
+						state.options = [];
 					});
-					if (generation !== this.generation) return;
-					if (!response.result.ok) throw new Error(response.result.error.message);
-					this.accept(response.result.value, true);
+					return;
+				}
+				if (mirrored.view === void 0) {
+					if (mirrored.error !== null) this.fail(new Error(mirrored.error));
+					return;
+				}
+				const view = mirrored.view.namespaces.find((entry) => entry.ns === PERMISSION_SETTINGS_NS);
+				if (view === void 0) {
+					this.store.update((state) => {
+						state.status = "unavailable";
+						state.writable = false;
+						state.currentValue = "";
+						state.options = [];
+					});
+					return;
+				}
+				try {
+					const resolved = permissionDefaultOf(view, this.schema);
+					const { writable } = mirrored.view;
+					this.store.update((state) => {
+						state.status = "ready";
+						state.error = null;
+						state.writable = writable;
+						state.currentValue = resolved.currentValue;
+						state.options = resolved.options;
+						state.revision = view.revision;
+					});
 				} catch (error) {
-					if (generation !== this.generation) return;
 					this.fail(error);
 				}
-			}
-			/** Stop in-flight responses from publishing after plugin disposal. */
-			dispose() {
-				this.generation += 1;
-				this.view = void 0;
-			}
-			accept(view, writable) {
-				const resolved = permissionDefaultOf(view);
-				this.view = view;
-				this.store.update((state) => {
-					state.status = "ready";
-					state.error = null;
-					state.writable = writable;
-					state.currentValue = resolved.currentValue;
-					state.options = resolved.options;
-					state.revision = view.revision;
-				});
 			}
 			fail(error) {
 				this.store.update((state) => {
@@ -329,14 +385,6 @@ window.__ModuleLoader__.load({
 				});
 			}
 		};
-		/**
-		* Refetch only after the row has opened once.
-		* @param controller - permission settings controller.
-		*/
-		function refreshPermissionIfLoaded(controller) {
-			if (controller.store.getSnapshot().status === "idle") return;
-			controller.load();
-		}
 		//#endregion
 		//#region lib/types/client/index.js
 		/** Required services (cordis fiber inject). */
@@ -345,8 +393,10 @@ window.__ModuleLoader__.load({
 			"sessions",
 			"slots",
 			"locale",
-			"connection",
-			"remote"
+			"remote",
+			"remote.settings",
+			"settingsScope",
+			"settingsSchema"
 		];
 		const ACCESS_NS = "permission.access";
 		/** Read one session's current permissions projection value (undefined = capability absent). */
@@ -357,7 +407,7 @@ window.__ModuleLoader__.load({
 		function optionsOf(value, t) {
 			return value.options.filter((option) => option.value !== "custom").map((option) => ({
 				id: option.value,
-				label: displayPermissionPreset(option.value, option.name),
+				label: displayPermissionPreset(option.value, option.name, t),
 				...option.description !== void 0 ? { detail: option.description } : {},
 				...option.value === value.currentValue ? { active: true } : {},
 				...option.value === "danger-full-access" ? { confirmation: {
@@ -379,12 +429,18 @@ window.__ModuleLoader__.load({
 			const sessions = ctx.sessions;
 			ctx.effect(() => {
 				const disposers = [ctx.locale.register(ACCESS_NS, "zh", {
+					"preset.readOnly": accessZh["preset.readOnly"],
+					"preset.workspaceWrite": accessZh["preset.workspaceWrite"],
+					"preset.fullAccess": accessZh["preset.fullAccess"],
 					"confirm.title": accessZh["confirm.title"],
 					"confirm.description": accessZh["confirm.description"],
 					"confirm.acknowledge": accessZh["confirm.acknowledge"],
 					"confirm.cancel": accessZh["confirm.cancel"],
 					"confirm.enable": accessZh["confirm.enable"]
 				}), ctx.locale.register(ACCESS_NS, "en", {
+					"preset.readOnly": accessEn["preset.readOnly"],
+					"preset.workspaceWrite": accessEn["preset.workspaceWrite"],
+					"preset.fullAccess": accessEn["preset.fullAccess"],
 					"confirm.title": accessEn["confirm.title"],
 					"confirm.description": accessEn["confirm.description"],
 					"confirm.acknowledge": accessEn["confirm.acknowledge"],
@@ -401,7 +457,7 @@ window.__ModuleLoader__.load({
 				zh,
 				en
 			}), "ui-permission: settings row dictionaries");
-			const controller = new PermissionPresetSettingsController(ctx.get("connection").api);
+			const controller = new PermissionPresetSettingsController(ctx.settingsScope.describe(), ctx, ctx.settingsSchema);
 			const load = () => controller.load();
 			const select = (preset) => controller.select(preset);
 			const injected = () => ({
@@ -409,21 +465,9 @@ window.__ModuleLoader__.load({
 				load,
 				select
 			});
-			ctx.effect(() => {
-				const refresh = () => {
-					refreshPermissionIfLoaded(controller);
-				};
-				const disposers = [ctx.remote.$on("settings/document-updated", (ns) => {
-					if (ns !== "permission") return;
-					refresh();
-				}), ctx.on("connection/reset", () => {
-					refresh();
-				})];
-				return () => {
-					controller.dispose();
-					for (const dispose of disposers) dispose();
-				};
-			}, "ui-permission: settings invalidations");
+			ctx.effect(() => () => {
+				controller.dispose();
+			}, "ui-permission: settings row directory");
 			ctx.slots.inject("settings.general.item", () => ctx.slots.register({
 				name: "settings.general.item",
 				id: "permission",

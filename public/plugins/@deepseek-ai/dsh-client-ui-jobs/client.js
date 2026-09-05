@@ -8,7 +8,7 @@ window.__ModuleLoader__.load({
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		//#region \0dsh-css:/home/runner/work/deepseek-harness/deepseek-harness/packages/client/ui-jobs/src/client/JobListAction.module.css.mjs
-		const css = ".QsffPG_root{position:relative}.QsffPG_trigger{min-height:28px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:0;border-radius:6px;align-items:center;gap:3px;padding:3px 2px;font-size:12px;line-height:18px;display:inline-flex}.QsffPG_trigger:hover,.QsffPG_trigger:focus-visible{color:var(--dsw-alias-label-secondary)}.QsffPG_trigger svg{transition:transform .12s}.QsffPG_triggerOpen{transform:rotate(180deg)}.QsffPG_triggerDot{flex:none}.QsffPG_count{margin:0 5px}.QsffPG_menu{z-index:100;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-specific-menu);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);width:336px;max-width:min(400px,100vw - 32px);max-height:min(420px,100vh - 140px);box-shadow:var(--dsw-shadow-lv3);border-radius:12px;flex-direction:column;gap:1px;margin:0;padding:4px;list-style:none;display:flex;position:absolute;top:calc(100% + 5px);left:0;overflow:auto}.QsffPG_row{box-sizing:border-box;width:100%;min-height:32px;color:var(--dsw-alias-label-primary);border-radius:8px;align-items:center;gap:8px;padding:6px 8px;font-size:13px;line-height:18px;display:flex}.QsffPG_rowSettled{color:var(--dsw-alias-label-tertiary)}.QsffPG_rowDot{flex:none}.QsffPG_kind{background:var(--dsw-alias-fill-l2);color:var(--dsw-alias-label-secondary);border-radius:5px;flex:none;padding:0 6px;font-size:11px;line-height:18px}.QsffPG_label{min-width:0;font-family:var(--dsw-font-mono);white-space:nowrap;text-overflow:ellipsis;flex:1;overflow:hidden}.QsffPG_status,.QsffPG_duration{color:var(--dsw-alias-label-tertiary);flex:none;font-size:11px;line-height:18px}.QsffPG_status{white-space:nowrap;text-overflow:ellipsis;max-width:40%;overflow:hidden}.QsffPG_duration{font-variant-numeric:tabular-nums}";
+		const css = ".QsffPG_root{position:relative}.QsffPG_trigger{min-height:28px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:0;border-radius:6px;align-items:center;gap:3px;padding:3px 2px;font-size:12px;line-height:18px;display:inline-flex}.QsffPG_trigger:hover,.QsffPG_trigger:focus-visible{color:var(--dsw-alias-label-secondary)}.QsffPG_trigger svg{transition:transform .12s}.QsffPG_triggerOpen{transform:rotate(180deg)}.QsffPG_triggerDot{flex:none}.QsffPG_count{margin:0 5px}.QsffPG_menu{z-index:100;box-sizing:border-box;background:var(--dsw-specific-menu);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2);--dsw-elevation-stroke-color:var(--dsw-alias-border-l1);width:336px;max-width:min(400px,100vw - 32px);max-height:min(420px,100vh - 140px);box-shadow:var(--dsw-elevation-prominent);border:0;border-radius:20px;flex-direction:column;gap:1px;margin:0;padding:4px;list-style:none;display:flex;position:absolute;top:calc(100% + 5px);left:0;overflow:auto}.QsffPG_row{box-sizing:border-box;width:100%;min-height:32px;color:var(--dsw-alias-label-primary);border-radius:8px;align-items:center;gap:8px;padding:6px 8px;font-size:13px;line-height:18px;display:flex}.QsffPG_rowSettled{color:var(--dsw-alias-label-tertiary)}.QsffPG_rowDot{flex:none}.QsffPG_kind{background:var(--dsw-alias-fill-l2);color:var(--dsw-alias-label-secondary);border-radius:5px;flex:none;padding:0 6px;font-size:11px;line-height:18px}.QsffPG_label{min-width:0;font-family:var(--dsw-font-mono);white-space:nowrap;text-overflow:ellipsis;flex:1;overflow:hidden}.QsffPG_status,.QsffPG_duration{color:var(--dsw-alias-label-tertiary);flex:none;font-size:11px;line-height:18px}.QsffPG_status{white-space:nowrap;text-overflow:ellipsis;max-width:40%;overflow:hidden}.QsffPG_duration{font-variant-numeric:tabular-nums}";
 		const tagId = "@deepseek-ai/dsh-client-ui-jobs/JobListAction.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -18,19 +18,19 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var JobListAction_module_css_default = {
-			"triggerDot": "QsffPG_triggerDot",
-			"kind": "QsffPG_kind",
-			"trigger": "QsffPG_trigger",
-			"menu": "QsffPG_menu",
-			"triggerOpen": "QsffPG_triggerOpen",
-			"rowSettled": "QsffPG_rowSettled",
-			"label": "QsffPG_label",
-			"status": "QsffPG_status",
+			"count": "QsffPG_count",
 			"duration": "QsffPG_duration",
-			"rowDot": "QsffPG_rowDot",
+			"kind": "QsffPG_kind",
+			"label": "QsffPG_label",
+			"menu": "QsffPG_menu",
 			"root": "QsffPG_root",
 			"row": "QsffPG_row",
-			"count": "QsffPG_count"
+			"rowDot": "QsffPG_rowDot",
+			"rowSettled": "QsffPG_rowSettled",
+			"status": "QsffPG_status",
+			"trigger": "QsffPG_trigger",
+			"triggerDot": "QsffPG_triggerDot",
+			"triggerOpen": "QsffPG_triggerOpen"
 		};
 		//#endregion
 		//#region lib/types/client/JobListAction.js
@@ -122,16 +122,7 @@ window.__ModuleLoader__.load({
 			const triggerRef = (0, react.useRef)(null);
 			const rows = (0, react.useMemo)(() => ordered(jobs), [jobs]);
 			const liveCount = (0, react.useMemo)(() => jobs.filter(isLive).length, [jobs]);
-			(0, react.useEffect)(() => {
-				if (!open) return;
-				const closeOutside = (event) => {
-					if (event.target instanceof Node && !rootRef.current?.contains(event.target)) setOpen(false);
-				};
-				document.addEventListener("pointerdown", closeOutside);
-				return () => {
-					document.removeEventListener("pointerdown", closeOutside);
-				};
-			}, [open]);
+			(0, _deepseek_ai_dsh_client_ui_primitives.useDismissOnOutsidePointer)(rootRef, open, setOpen);
 			(0, react.useEffect)(() => {
 				if (!open || liveCount === 0) return;
 				setNow(Date.now());

@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -14,6 +14,7 @@ export interface DshWebSidecar {
   conversationId: string
   home: string
   port: number
+  cookie: string
   child: ChildProcess
   gateway: LocalGatewayProxy
   mcp: LocalMcpBridge
@@ -158,8 +159,8 @@ async function freePort(): Promise<number> {
   return port
 }
 
-/** pi-ai official DeepSeek route. rc.6 `llm-deepseek` / `deepseek-official` is text-only. */
-const OFFICIAL_PROVIDER = 'deepseek'
+/** Official DeepSeek adapter. 0.1.2-rc.1 `llm-deepseek` includes vision. */
+const OFFICIAL_PROVIDER = 'deepseek-official'
 const MAKERS_GATEWAY_API_KEY_ENV = 'MAKERS_GATEWAY_API_KEY'
 const DEFAULT_OFFICIAL_MODEL = 'deepseek-v4-flash-vision-exp'
 const DEFAULT_OFFICIAL_BASE_URL = 'https://api.deepseek.com'
@@ -178,36 +179,13 @@ function officialDefaultModelSection(defaultModel: string): string {
   ].join('\n')
 }
 
-function officialVisionProviderLines(indent: string, defaultModel: string): string[] {
+function officialDeepSeekSection(): string {
   return [
-    'providers:',
-    `  ${OFFICIAL_PROVIDER}:`,
-    '    displayName: DeepSeek',
-    '    apiKeyEnv: DEEPSEEK_API_KEY',
-    '    api: openai-completions',
-    `    baseURL: ${JSON.stringify(DEFAULT_OFFICIAL_BASE_URL)}`,
-    '    defaultInput:',
-    '      - text',
-    '      - image',
-    '    compat:',
-    '      thinkingFormat: deepseek',
-    '    models:',
-    `      - id: ${JSON.stringify(defaultModel)}`,
-    '        name: DeepSeek-V4-Flash-Vision',
-    '        input:',
-    '          - text',
-    '          - image',
-    '        contextWindow: 1000000',
-    '        maxTokens: 256000',
-    '        reasoningEfforts:',
-    '          off:',
-    '          high: high',
-    '          max: max',
-  ].map(line => `${indent}${line}`)
-}
-
-function officialVisionProviderSection(defaultModel: string): string {
-  return ['llm-pi-ai:', ...officialVisionProviderLines('  ', defaultModel), ''].join('\n')
+    'llm-deepseek:',
+    '  apiKeyEnv: DEEPSEEK_API_KEY',
+    `  baseURL: ${JSON.stringify(DEFAULT_OFFICIAL_BASE_URL)}`,
+    '',
+  ].join('\n')
 }
 
 function upsertYamlSection(yaml: string, name: string, section: string): string {
@@ -218,11 +196,9 @@ function upsertYamlSection(yaml: string, name: string, section: string): string 
     : `${yaml.replace(/\s*$/, '')}\n\n${section}`
 }
 
-function hasOfficialVisionProvider(yaml: string, defaultModel: string): boolean {
-  const block = yaml.match(/^llm-pi-ai:\n((?:[ \t]+.*\n)*)/m)?.[1] ?? ''
-  return block.includes(`${OFFICIAL_PROVIDER}:`)
-    && block.includes(defaultModel)
-    && /input:[\s\S]*-\s*image/.test(block)
+function hasOfficialDeepSeekAdapter(yaml: string): boolean {
+  const block = yaml.match(/^llm-deepseek:\n((?:[ \t]+.*\n)*)/m)?.[1] ?? ''
+  return block.includes('apiKeyEnv: DEEPSEEK_API_KEY')
 }
 
 function officialDefaultModel(context: any): string {
@@ -243,6 +219,18 @@ function settingsProviderOf(yaml: string, namespace: string): string | undefined
   return settingsFieldOf(yaml, namespace, 'provider')
 }
 
+async function linkSidecarPackage(home: string, name: string): Promise<void> {
+  const source = dirname(require.resolve(`${name}/package.json`))
+  const dest = join(home, 'profiles', 'web', 'node_modules', ...name.split('/'))
+  await mkdir(dirname(dest), { recursive: true })
+  await rm(dest, { recursive: true, force: true })
+  try {
+    await symlink(source, dest, process.platform === 'win32' ? 'junction' : 'dir')
+  } catch {
+    await cp(source, dest, { recursive: true })
+  }
+}
+
 /** Seed or migrate the Host default to official DeepSeek vision (text + image). */
 export async function ensureOfficialDefaultModelSettings(home: string, defaultModel: string): Promise<void> {
   const path = join(home, DSH_SETTINGS_FILE)
@@ -257,11 +245,11 @@ export async function ensureOfficialDefaultModelSettings(home: string, defaultMo
   }
   const modelReady = settingsProviderOf(yaml, 'agent-default-model') === OFFICIAL_PROVIDER
     && settingsFieldOf(yaml, 'agent-default-model', 'model') === defaultModel
-  const visionReady = hasOfficialVisionProvider(yaml, defaultModel)
-  if (modelReady && visionReady) return
+  const adapterReady = hasOfficialDeepSeekAdapter(yaml)
+  if (modelReady && adapterReady) return
   let next = yaml
   if (!modelReady) next = upsertYamlSection(next, 'agent-default-model', officialDefaultModelSection(defaultModel))
-  if (!visionReady) next = upsertYamlSection(next, 'llm-pi-ai', officialVisionProviderSection(defaultModel))
+  if (!adapterReady) next = upsertYamlSection(next, 'llm-deepseek', officialDeepSeekSection())
   await mkdir(home, { recursive: true })
   await writeFile(path, next)
 }
@@ -330,11 +318,19 @@ async function writeProfilePatch(
     `    provider: ${OFFICIAL_PROVIDER}`,
     `    model: ${JSON.stringify(options.defaultModel)}`,
     '',
-    '- id: llm-pi-ai',
+    '- id: llm-deepseek',
     '  config:',
-    ...officialVisionProviderLines('    ', options.defaultModel),
+    '    apiKeyEnv: DEEPSEEK_API_KEY',
+    `    baseURL: ${JSON.stringify(DEFAULT_OFFICIAL_BASE_URL)}`,
     '',
     '- insert:',
+    '    - id: agent-teams',
+    "      name: '@nanmicoder/dsh-agent-teams'",
+    '      config:',
+    '        stateDir: .agent-teams',
+    '        memberProvider: fork',
+    `        memberModel: ${JSON.stringify(options.defaultModel)}`,
+    '',
     '    - id: makers-mcp',
     "      name: '@deepseek-ai/dsh-mcp-client'",
     '      config:',
@@ -353,16 +349,47 @@ async function writeProfilePatch(
   ].join('\n'))
 }
 
-async function callRpc(port: number, method: string, payload: Record<string, unknown>): Promise<void> {
+function sidecarHeaders(port: number, cookie?: string): Record<string, string> {
+  return {
+    origin: `http://127.0.0.1:${String(port)}`,
+    ...(cookie ? { cookie } : {}),
+  }
+}
+
+function launchTokenFromOutput(output: string): string | undefined {
+  return output.match(/[?&]token=([A-Za-z0-9_-]+)/)?.[1]
+}
+
+function cookieFromSetCookie(header: string | null): string | undefined {
+  if (!header) return undefined
+  const pair = header.split(';', 1)[0]?.trim()
+  return pair && pair.includes('=') ? pair : undefined
+}
+
+async function exchangeLaunchToken(port: number, token: string): Promise<string | undefined> {
+  const response = await fetch(`http://127.0.0.1:${String(port)}/?token=${encodeURIComponent(token)}`, {
+    redirect: 'manual',
+    signal: AbortSignal.timeout(2_000),
+  })
+  return cookieFromSetCookie(response.headers.get('set-cookie'))
+}
+
+async function callRpc(port: number, cookie: string, method: string, payload: Record<string, unknown>): Promise<void> {
   const deadline = Date.now() + 30_000
   let lastError: unknown
   while (Date.now() < deadline) {
     let response: Response
     try {
-      response = await fetch(`http://127.0.0.1:${String(port)}/api/${method}`, {
+      const endpoint = method.replaceAll('.', '/')
+      response = await fetch(`http://127.0.0.1:${String(port)}/api/${endpoint}`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ type: 'client-request', rpcId: crypto.randomUUID(), method, payload }),
+        headers: { 'content-type': 'application/json', ...sidecarHeaders(port, cookie) },
+        body: JSON.stringify({
+          type: 'client-request',
+          rpcId: crypto.randomUUID(),
+          method: endpoint,
+          payload: { args: payload },
+        }),
       })
     } catch (error) {
       lastError = error
@@ -381,25 +408,31 @@ async function callRpc(port: number, method: string, payload: Record<string, unk
   throw lastError instanceof Error ? lastError : new Error(`DSH sidecar ${method} did not become ready`)
 }
 
-async function waitForReady(child: ChildProcess, port: number): Promise<void> {
-  const deadline = Date.now() + 45_000
+async function waitForReady(child: ChildProcess, port: number): Promise<string> {
+  const deadline = Date.now() + 60_000
+  let stdout = ''
   let stderr = ''
+  child.stdout?.setEncoding('utf8')
+  child.stdout?.on('data', chunk => { stdout = `${stdout}${String(chunk)}`.slice(-8_000) })
   child.stderr?.setEncoding('utf8')
   child.stderr?.on('data', chunk => { stderr = `${stderr}${String(chunk)}`.slice(-8_000) })
   while (Date.now() < deadline) {
     if (child.exitCode !== null) {
-      throw new Error(`DSH Web sidecar exited with ${String(child.exitCode)}: ${stderr}`)
+      throw new Error(`DSH Web sidecar exited with ${String(child.exitCode)}: ${stderr || stdout}`)
     }
-    try {
-      const response = await fetch(`http://127.0.0.1:${String(port)}/`, { signal: AbortSignal.timeout(1_000) })
-      if (response.ok) return
-    } catch {
-      // The server is still booting.
+    const token = launchTokenFromOutput(stdout)
+    if (token) {
+      try {
+        const cookie = await exchangeLaunchToken(port, token)
+        if (cookie) return cookie
+      } catch {
+        // The token line can print before the listener accepts connections.
+      }
     }
     await new Promise(resolve => setTimeout(resolve, 250))
   }
   child.kill('SIGTERM')
-  throw new Error(`DSH Web sidecar did not become ready: ${stderr}`)
+  throw new Error(`DSH Web sidecar did not become ready: ${stderr || stdout}`)
 }
 
 async function startSidecar(context: any, conversationId: string): Promise<DshWebSidecar> {
@@ -420,6 +453,7 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     gatewayBaseUrl: gateway.baseUrl,
     defaultModel,
   })
+  await linkSidecarPackage(home, '@nanmicoder/dsh-agent-teams')
 
   const dshBin = join(dirname(require.resolve('@deepseek-ai/dsh/package.json')), 'lib', 'bin.js')
   const child = spawn(process.execPath, [
@@ -428,13 +462,19 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     'web',
     '--host', '127.0.0.1',
     '--port', String(port),
+    '--no-open',
   ], {
     cwd: home,
     env: {
       PATH: typeof context.env?.PATH === 'string' ? context.env.PATH : (process.env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'),
-      HOME: typeof context.env?.HOME === 'string' ? context.env.HOME : tmpdir(),
+      HOME: home,
       DSH_HOME: home,
       DSH_CWD: home,
+      NODE_PATH: [
+        join(dirname(require.resolve('@deepseek-ai/dsh/package.json')), '..', '..'),
+        typeof context.env?.NODE_PATH === 'string' ? context.env.NODE_PATH : '',
+        process.env.NODE_PATH || '',
+      ].filter(Boolean).join(process.platform === 'win32' ? ';' : ':'),
       [MAKERS_GATEWAY_API_KEY_ENV]: 'makers-proxy',
       ...(deepseekApiKey ? { DEEPSEEK_API_KEY: deepseekApiKey } : {}),
       DEEPSEEK_BASE_URL: deepseekBaseUrl,
@@ -443,11 +483,12 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
+  let cookie = ''
   try {
-    await waitForReady(child, port)
+    cookie = await waitForReady(child, port)
     const workspacePath = join(home, 'workspace')
     await mkdir(workspacePath, { recursive: true })
-    await callRpc(port, 'workspace.create', { path: workspacePath })
+    await callRpc(port, cookie, 'workspace.create', { request: { path: workspacePath } })
   } catch (error) {
     await Promise.allSettled([gateway.close(), mcp.close()])
     throw error
@@ -457,6 +498,7 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     conversationId,
     home,
     port,
+    cookie,
     child,
     gateway,
     mcp,

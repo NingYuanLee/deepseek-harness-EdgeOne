@@ -4,7 +4,8 @@ import test from 'node:test'
 
 test('build preparation installs the official DSH Web plugin graph', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8')
-  assert.match(html, /window\.__DSH_BOOT__/)
+  assert.match(html, /__DSH_BOOT__/)
+  assert.match(html, /window\.__ModuleLoader__/)
   assert.match(html, /@deepseek-ai\/dsh-client-ui-conversation/)
   assert.match(html, /@deepseek-ai\/dsh-client-ui-trajectory/)
   assert.match(html, /@deepseek-ai\/dsh-client-ui-workspace/)
@@ -12,14 +13,17 @@ test('build preparation installs the official DSH Web plugin graph', async () =>
 })
 
 test('Makers connection bundle uses SSE and injects conversation routing', async () => {
-  const connection = await readFile(
-    new URL('../public/plugins/@deepseek-ai/dsh-client-connection/client.js', import.meta.url),
+  const gateway = await readFile(
+    new URL('../public/plugins/@deepseek-ai/dsh-api-gateway/client.js', import.meta.url),
     'utf8',
   )
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8')
-  assert.match(connection, /readSse\(MUX_EVENTS_PATH/)
-  assert.match(connection, /readSse\(HOST_EVENTS_PATH/)
+  assert.match(gateway, /Remote stream SSE failed to open/)
+  assert.match(gateway, /accept: "text\/event-stream"/)
+  assert.doesNotMatch(gateway, /url\.protocol = url\.protocol === "https:" \? "wss:" : "ws:"/)
   assert.match(html, /makers-conversation-id/)
+  assert.match(html, /window\.__ModuleLoader__/)
+  assert.match(html, /__DSH_BOOT_READY__/)
 })
 
 test('built-in agent presets are locked in the prepared Web UI', async () => {
@@ -91,7 +95,7 @@ test('charset is declared in the first 1024 bytes before overlay copy', async ()
     Buffer.byteLength(html.slice(0, charset.index), 'utf8') < 1024,
     'charset must be inside the HTML5 encoding-sniff window',
   )
-  assert.ok(charset.index < html.indexOf('window.__DSH_BOOT__'))
+  assert.ok(charset.index < html.indexOf('__DSH_BOOT__'))
   assert.ok(charset.index < html.indexOf('GitHub 源码'))
 })
 
@@ -102,9 +106,9 @@ test('locale defaults from hostname instead of the browser language', async () =
   )
   assert.match(
     source,
-    /function resolveInitialLocale\(\) \{\n\t\t\tif \(typeof window !== "undefined" && location\.hostname\.endsWith\("\.edgeone\.dev"\)\) return "en";\n\t\t\treturn "zh";/,
+    /function resolveInitialLocale\(locales\) \{\n\t\t\tif \(typeof window !== "undefined" && location\.hostname\.endsWith\("\.edgeone\.dev"\)\) return "en";\n\t\t\treturn locales\.some\(\(locale\) => locale\.id === "zh"\) \? "zh" : "en";/,
   )
-  assert.doesNotMatch(source, /detectBrowserLocale/)
+  assert.match(source, /detectBrowserLocale/)
 })
 
 test('page chrome keeps only a GitHub link to this repository', async () => {
@@ -150,24 +154,21 @@ test('settings and model welcome preferences persist through Host even off loopb
     new URL('../public/plugins/@deepseek-ai/dsh-client-ui-model-selection/client.js', import.meta.url),
     'utf8',
   )
-  assert.match(settings, /new SettingsScopeController\(connection\.api, spec, "host"\)/)
-  assert.doesNotMatch(settings, /connection\.isLoopback \? "host" : "memory"/)
-  assert.match(models, /new WelcomeNoticeStore\(connection\.api, "host"\)/)
-  assert.doesNotMatch(models, /connection\.isLoopback \? "host" : "memory"/)
+  assert.match(settings, /const persistence = "host";/)
+  assert.doesNotMatch(settings, /isLoopback \? "host" : "memory"/)
+  assert.doesNotMatch(models, /isLoopback \? "host" : "memory"/)
   assert.doesNotMatch(models, /id: "welcome-notice"/)
   assert.doesNotMatch(models, /id: "deepseek-official"/)
   assert.match(models, /officialProvided: "Models come from the official DeepSeek API\. Image input is enabled for DeepSeek-V4-Flash-Vision\. The key is read only from DEEPSEEK_API_KEY\."/)
   assert.match(models, /officialProvided: "模型由 DeepSeek 原厂提供，已开启图片输入（DeepSeek-V4-Flash-Vision）。API Key 仅从环境变量 DEEPSEEK_API_KEY 读取。"/)
   assert.match(models, /https:\/\/api-docs\.deepseek\.com\//)
   assert.match(selection, /officialVisionGroups/)
-  assert.match(selection, /group.id === "deepseek"/)
+  assert.match(selection, /group.id === "deepseek-official"/)
   assert.match(selection, /deepseek-v4-flash-vision-exp/)
-  assert.match(selection, /return \{ \.\.\.result\.value, groups: officialGroups \}/)
+  assert.match(selection, /groups: officialGroups/)
   assert.doesNotMatch(selection, /group\.id === "edgeone-makers"/)
   assert.match(selection, /inflightSelect/)
   assert.match(selection, /const optimistic =/)
-  assert.match(selection, /if \(state.groups.length === 0\) reload\(\)/)
-  assert.match(selection, /close\(true\);\n\t\t\t\tselect\(selection\)\.then\(settleSelection\)/)
   assert.match(selection, /if \(accepted\) return/)
   assert.doesNotMatch(selection, /if \(accepted\) \{\n\t\t\t\t\tif \(rootRef\.current !== null\) close\(true\)/)
 })

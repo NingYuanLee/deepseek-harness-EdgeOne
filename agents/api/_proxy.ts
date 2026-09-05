@@ -23,6 +23,99 @@ function requestSearch(context: any, incomingUrl: URL): string {
   return encoded ? `?${encoded}` : ''
 }
 
+function asStreamBody(context: any): Record<string, unknown> | undefined {
+  return asRecord(context.request?.body)
+}
+
+function remoteMuxStream(context: any): Response {
+  const encoder = new TextEncoder()
+  let socket: WebSocket | undefined
+  const signal = context.request?.signal as AbortSignal | undefined
+  const body = asStreamBody(context) ?? {}
+  const endpoint = typeof body.endpoint === 'string' ? body.endpoint : ''
+  const payload = body.payload
+  if (!endpoint) {
+    return new Response(JSON.stringify({ error: 'remote.mux requires endpoint' }), {
+      status: 400,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    })
+  }
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const streamError = (error: unknown): void => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            streamId: 'makers',
+            error: {
+              code: 'internal',
+              message: error instanceof Error ? error.message : String(error),
+              details: {},
+            },
+          })}\n\n`))
+        } catch {
+          // The browser already disconnected.
+        }
+        try { controller.close() } catch { /* already cancelled */ }
+      }
+      try {
+        const sidecar = await getDshWebSidecar(context)
+        const streamId = crypto.randomUUID()
+        socket = new WebSocket(`ws://127.0.0.1:${String(sidecar.port)}/api/remote.mux`, {
+          headers: {
+            origin: `http://127.0.0.1:${String(sidecar.port)}`,
+            cookie: sidecar.cookie,
+          },
+        })
+        const close = (): void => {
+          if (socket?.readyState === WebSocket.OPEN) {
+            try { socket.send(JSON.stringify({ type: 'cancel', streamId })) } catch { /* closing */ }
+          }
+          if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
+        }
+        signal?.addEventListener('abort', close, { once: true })
+        socket.once('open', () => {
+          try {
+            socket?.send(JSON.stringify({ type: 'open', streamId, endpoint, payload }))
+            controller.enqueue(encoder.encode(': connected\n\n'))
+          } catch {
+            close()
+          }
+        })
+        socket.on('message', data => {
+          try {
+            const text = data.toString()
+            const frame = JSON.parse(text) as { streamId?: string; type?: string }
+            if (frame.streamId !== undefined && frame.streamId !== streamId) return
+            controller.enqueue(encoder.encode(`data: ${text}\n\n`))
+            if (frame.type === 'end' || frame.type === 'error') close()
+          } catch {
+            close()
+          }
+        })
+        socket.once('error', streamError)
+        socket.once('close', () => {
+          signal?.removeEventListener('abort', close)
+          try { controller.close() } catch { /* already cancelled */ }
+        })
+      } catch (error) {
+        streamError(error)
+      }
+    },
+    cancel() {
+      if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
+    },
+  })
+  return new Response(stream, {
+    headers: {
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+      'x-accel-buffering': 'no',
+    },
+  })
+}
+
 function eventStream(context: any, kind: 'mux' | 'host'): Response {
   const encoder = new TextEncoder()
   let socket: WebSocket | undefined
@@ -49,7 +142,10 @@ function eventStream(context: any, kind: 'mux' | 'host'): Response {
         const sidecar = await getDshWebSidecar(context)
         const path = kind === 'mux' ? '/api/events.mux' : '/api/events.host'
         socket = new WebSocket(`ws://127.0.0.1:${String(sidecar.port)}${path}`, {
-          headers: { origin: `http://127.0.0.1:${String(sidecar.port)}` },
+          headers: {
+            origin: `http://127.0.0.1:${String(sidecar.port)}`,
+            cookie: sidecar.cookie,
+          },
         })
         const close = (): void => {
           if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) socket.close()
@@ -161,11 +257,11 @@ function rejectLockedModelConfig(rpcId: unknown, reason: string): Response {
   })
 }
 
-function rewriteTextOnlyOfficialProvider(body: unknown): unknown {
+function rewriteLegacyPiAiOfficialProvider(body: unknown): unknown {
   const envelope = asRecord(body)
   const payload = asRecord(envelope?.payload)
-  if (!envelope || !payload || payload.provider !== 'deepseek-official') return body
-  return { ...envelope, payload: { ...payload, provider: 'deepseek' } }
+  if (!envelope || !payload || payload.provider !== 'deepseek') return body
+  return { ...envelope, payload: { ...payload, provider: 'deepseek-official' } }
 }
 
 function requestedLockedModelConfig(path: string, body: unknown): string | undefined {
@@ -221,6 +317,7 @@ async function snapshotSettingsAfterWrite(
 
 async function proxy(context: any): Promise<Response> {
   const path = requestPath(context)
+  if (path === '/api/remote.mux') return remoteMuxStream(context)
   if (path === '/api/events.mux') return eventStream(context, 'mux')
   if (path === '/api/events.host') return eventStream(context, 'host')
 
@@ -236,11 +333,13 @@ async function proxy(context: any): Promise<Response> {
   const method = String(context.request?.method || 'POST').toUpperCase()
   const body = method === 'GET' || method === 'HEAD'
     ? undefined
-    : JSON.stringify(rewriteTextOnlyOfficialProvider(context.request?.body ?? {}))
+    : JSON.stringify(rewriteLegacyPiAiOfficialProvider(context.request?.body ?? {}))
   const upstream = await fetch(upstreamUrl, {
     method,
     headers: {
       accept: context.request?.headers?.accept || '*/*',
+      origin: `http://127.0.0.1:${String(sidecar.port)}`,
+      cookie: sidecar.cookie,
       ...(body === undefined ? {} : { 'content-type': 'application/json' }),
     },
     ...(body === undefined ? {} : { body }),

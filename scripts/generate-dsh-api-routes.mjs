@@ -3,9 +3,9 @@ import { fileURLToPath } from 'node:url'
 
 const apiDir = fileURLToPath(new URL('../agents/api/', import.meta.url))
 const methods = [
-  'events.mux', 'events.host', 'respond', 'session.export',
+  'remote.mux', 'events.mux', 'events.host', 'respond', 'session.export',
   'session.list', 'session.search', 'session.create', 'session.history', 'session.models',
-  'session.selectModel', 'session.rename', 'session.fork', 'session.prompt', 'session.attachment',
+  'session.modelCatalog', 'session.selectModel', 'session.rename', 'session.fork', 'session.prompt', 'session.attachment',
   'session.updateQueue', 'session.cancel',
   'subagent.list', 'subagent.history', 'subagent.prompt', 'subagent.interrupt',
   'host.describe', 'host.pickDirectory', 'host.listDirectory', 'host.createDirectory', 'host.openPath',

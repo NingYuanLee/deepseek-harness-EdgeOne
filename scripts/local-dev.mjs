@@ -100,8 +100,19 @@ async function sendWebResponse(res, response) {
     res.end()
     return
   }
-  const bytes = Buffer.from(await response.arrayBuffer())
-  res.end(bytes)
+  const reader = response.body.getReader()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      res.write(Buffer.from(value))
+    }
+    res.end()
+  } catch (error) {
+    reader.releaseLock()
+    if (!res.writableEnded) res.end()
+    throw error
+  }
 }
 
 async function serveStatic(res, pathname) {
@@ -131,7 +142,11 @@ const { onRequestPost } = await import('../agents/stop.ts')
 const server = createServer((req, res) => {
   void (async () => {
     const url = new URL(req.url || '/', `http://127.0.0.1:${String(port)}`)
-    if (url.pathname.startsWith('/api') || url.pathname === '/stop') {
+    if (
+      url.pathname.startsWith('/api')
+      || url.pathname === '/stop'
+      || url.pathname === '/plugins/dsh-agent-teams/state'
+    ) {
       const body = req.method === 'GET' || req.method === 'HEAD' ? {} : await readBody(req)
       const context = makersContext(req, body, env)
       const response = url.pathname === '/stop'

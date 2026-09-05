@@ -8,7 +8,7 @@ window.__ModuleLoader__.load({
 		let react = require("react");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 		//#region \0dsh-css:/home/runner/work/deepseek-harness/deepseek-harness/packages/client/ui-goal/src/client/GoalBar.module.css.mjs
-		const css$1 = ".nLMEza_dock{box-sizing:border-box;width:calc(100% - var(--dsh-composer-side-clearance) - var(--dsh-composer-side-clearance) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));margin:0 auto}.nLMEza_bar{box-sizing:border-box;width:100%;max-width:calc(var(--dsh-composer-card-max-width) - 4 * var(--dsh-composer-dock-inset));border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-specific-tip);border-radius:12px;align-items:center;gap:10px;height:36px;margin:0 auto;padding:4px 5px 4px 12px;display:flex}.nLMEza_goalGlyph{color:var(--dsw-alias-label-tertiary);flex:none;display:inline-flex}.nLMEza_label{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:24px}.nLMEza_objective{min-width:0;color:var(--dsw-alias-label-primary-dimmed);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:13px;line-height:20px;overflow:hidden}.nLMEza_error{min-width:0;color:var(--dsw-alias-state-error-primary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:20px;overflow:hidden}.nLMEza_objectiveInput{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);min-width:0;height:26px;color:var(--dsw-alias-label-primary);border-radius:6px;outline:none;flex:1;padding:0 8px;font-size:13px;line-height:20px}.nLMEza_objectiveInput:focus{border-color:var(--dsw-alias-state-business-primary)}.nLMEza_objectiveInput::placeholder{color:var(--dsw-alias-label-caption)}.nLMEza_actions{flex:none;align-items:center;gap:10px;display:flex}.nLMEza_iconBtn{width:28px;height:28px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:999px;justify-content:center;align-items:center;padding:0;display:inline-flex}.nLMEza_iconBtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary)}.nLMEza_iconBtn:disabled{opacity:.4;cursor:default}";
+		const css$1 = ".nLMEza_dock{box-sizing:border-box;width:calc(100% - var(--dsh-composer-side-clearance) - var(--dsh-composer-side-clearance) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset) - var(--dsh-composer-dock-inset));margin:0 auto}.nLMEza_bar{box-sizing:border-box;width:100%;max-width:calc(var(--dsh-composer-card-max-width) - 4 * var(--dsh-composer-dock-inset));border:.5px solid var(--dsw-alias-border-l1);background:var(--dsw-specific-tip);border-radius:12px;align-items:center;gap:10px;height:36px;margin:0 auto;padding:4px 5px 4px 12px;display:flex}.nLMEza_goalGlyph{color:var(--dsw-alias-label-tertiary);flex:none;display:inline-flex}.nLMEza_label{color:var(--dsw-alias-label-primary);flex:none;font-size:13px;font-weight:500;line-height:24px}.nLMEza_objective{min-width:0;color:var(--dsw-alias-label-primary-dimmed);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:13px;line-height:20px;overflow:hidden}.nLMEza_error{min-width:0;color:var(--dsw-alias-state-error-primary);text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:12px;line-height:20px;overflow:hidden}.nLMEza_objectiveInput{border:.5px solid var(--dsw-alias-border-l4);background:var(--dsw-alias-bg-base);min-width:0;height:26px;color:var(--dsw-alias-label-primary);border-radius:6px;outline:none;flex:1;padding:0 8px;font-size:13px;line-height:20px}.nLMEza_objectiveInput:focus{border-color:var(--dsw-alias-state-business-primary)}.nLMEza_objectiveInput::placeholder{color:var(--dsw-alias-label-caption)}.nLMEza_actions{flex:none;align-items:center;gap:10px;display:flex}.nLMEza_iconBtn{corner-shape:round;width:28px;height:28px;color:var(--dsw-alias-label-tertiary);cursor:pointer;background:0 0;border:none;border-radius:999px;justify-content:center;align-items:center;padding:0;display:inline-flex}.nLMEza_iconBtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary)}.nLMEza_iconBtn:disabled{opacity:.4;cursor:default}";
 		const tagId$1 = "@deepseek-ai/dsh-client-ui-goal/GoalBar.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$1) + "]") === null) {
 			const tag = document.createElement("style");
@@ -18,15 +18,15 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var GoalBar_module_css_default = {
-			"dock": "nLMEza_dock",
-			"objective": "nLMEza_objective",
-			"objectiveInput": "nLMEza_objectiveInput",
-			"label": "nLMEza_label",
-			"iconBtn": "nLMEza_iconBtn",
 			"actions": "nLMEza_actions",
+			"bar": "nLMEza_bar",
+			"dock": "nLMEza_dock",
 			"error": "nLMEza_error",
 			"goalGlyph": "nLMEza_goalGlyph",
-			"bar": "nLMEza_bar"
+			"iconBtn": "nLMEza_iconBtn",
+			"label": "nLMEza_label",
+			"objective": "nLMEza_objective",
+			"objectiveInput": "nLMEza_objectiveInput"
 		};
 		//#endregion
 		//#region lib/types/client/GoalBar.js
@@ -251,7 +251,7 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 		//#region \0dsh-css:/home/runner/work/deepseek-harness/deepseek-harness/packages/client/ui-goal/src/client/GoalCommandInputView.module.css.mjs
-		const css = ".oRe1gG_row{flex-direction:column;align-items:flex-end;gap:6px;display:flex}.oRe1gG_stack{flex-direction:column;align-items:flex-end;min-width:0;max-width:min(525px,82%);display:flex}.oRe1gG_bubble{overflow-wrap:anywhere;background:var(--dsw-specific-bubble);max-width:100%;color:var(--dsw-alias-label-primary);font:var(--dsw-font-markdown-code);white-space:pre-wrap;border-radius:22px;padding:10px 16px}";
+		const css = ".oRe1gG_row{flex-direction:column;align-items:flex-end;gap:6px;display:flex}.oRe1gG_stack{min-width:0;max-width:min(calc(var(--dsh-chat-content-width,748px) * .702), 82%);flex-direction:column;align-items:flex-end;display:flex}.oRe1gG_bubble{overflow-wrap:anywhere;background:var(--dsw-specific-bubble);max-width:100%;color:var(--dsw-alias-label-primary);font:var(--dsw-font-markdown-code);font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px));white-space:pre-wrap;border-radius:22px;padding:10px 16px}";
 		const tagId = "@deepseek-ai/dsh-client-ui-goal/GoalCommandInputView.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -261,9 +261,9 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var GoalCommandInputView_module_css_default = {
-			"stack": "oRe1gG_stack",
 			"bubble": "oRe1gG_bubble",
-			"row": "oRe1gG_row"
+			"row": "oRe1gG_row",
+			"stack": "oRe1gG_stack"
 		};
 		//#endregion
 		//#region lib/types/client/GoalCommandInputView.js
@@ -339,7 +339,7 @@ window.__ModuleLoader__.load({
 			"phase.paused": "已暂停的目标",
 			"phase.blocked": "受阻的目标",
 			"objective.aria": "目标内容",
-			"commandInput.aria": "命令输入",
+			"commandInput.aria": "指令输入",
 			"action.save": "保存目标",
 			"action.cancel": "取消编辑",
 			"action.pause": "暂停目标",
@@ -372,14 +372,14 @@ window.__ModuleLoader__.load({
 			"remote",
 			"remote.goals",
 			"locale",
-			"conversationEvents"
+			"uiConversation"
 		];
 		/**
 		* Client plugin body: the GoalBar dock entry with its mutation verbs.
 		* @param ctx - client root context.
 		*/
 		function apply(ctx) {
-			ctx.conversationEvents.register(goalCommandInputDefinition);
+			ctx.uiConversation.events.register(goalCommandInputDefinition);
 			ctx.effect(() => ctx.locale.register(NS, {
 				zh,
 				en
@@ -403,8 +403,7 @@ window.__ModuleLoader__.load({
 				ok: false,
 				error: {
 					code: "no-current-goal",
-					message: "no current goal to mutate",
-					details: {}
+					message: "no current goal to mutate"
 				}
 			};
 			ctx.slots.inject("conversation.input.dock", () => ctx.slots.register({

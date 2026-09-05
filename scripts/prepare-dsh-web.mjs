@@ -31,22 +31,182 @@ function mustReplace(source, find, replacement, label) {
   return source.replace(find, replacement)
 }
 
-function patchConnectionBundle(source) {
-  const mux = 'return this.readWebSocket(MUX_EVENTS_PATH, signal, muxFrameSchema, onOpen);'
-  const host = 'return this.readWebSocket(HOST_EVENTS_PATH, signal, hostFrameSchema, onOpen);'
-  if (!source.includes(mux) || !source.includes(host)) {
-    throw new Error('Published DSH connection bundle no longer matches the Makers SSE patch points.')
+const CLIENT_MODULES_ID = '@deepseek-ai/dsh-client-modules'
+
+function escapeHtmlAttribute(value) {
+  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+}
+
+function stripClientSuffix(spec) {
+  return spec.endsWith('/client') ? spec.slice(0, -7) : spec
+}
+
+function orderByModuleGraph(entries) {
+  const rowsById = new Map(entries.map((entry) => [entry.id, entry]))
+  const ordered = []
+  const placed = new Set()
+  const open = []
+  const visit = (entry) => {
+    if (placed.has(entry.id)) return
+    const cycleStart = open.indexOf(entry.id)
+    if (cycleStart !== -1) {
+      throw new Error(`client-modules: module graph cycle ${[...open.slice(cycleStart), entry.id].join(' -> ')}`)
+    }
+    open.push(entry.id)
+    for (const name of entry.external ?? []) {
+      const dependency = rowsById.get(name) ?? rowsById.get(stripClientSuffix(name))
+      if (dependency === entry) {
+        throw new Error(`client-modules: "${entry.id}" requests its own package in dsh.client.external`)
+      }
+      if (dependency !== undefined) visit(dependency)
+    }
+    open.pop()
+    placed.add(entry.id)
+    ordered.push(entry)
   }
-  return source
-    .replace(mux, 'return this.readSse(MUX_EVENTS_PATH, signal, muxFrameSchema, onOpen);')
-    .replace(host, 'return this.readSse(HOST_EVENTS_PATH, signal, hostFrameSchema, onOpen);')
+  for (const entry of entries) visit(entry)
+  return ordered
+}
+
+function stripSourceMapTrailer(source) {
+  return source.replace(/(?:\r?\n)?\/\/# sourceMappingURL=[^\r\n]*(?:\r?\n)?$/, '\n')
+}
+
+function patchGatewayBundle(source) {
+  let next = mustReplace(
+    source,
+    `			start() {
+				if (this.disposed) return;
+				this.running = true;
+				if (this.socket?.readyState === WebSocket.OPEN) return;
+				const pending = this.keepAlive;
+				if (pending === void 0) this.maintain();
+				else pending.then(() => {
+					this.maintain();
+				});
+			}`,
+    `			start() {
+				if (this.disposed) return;
+				this.running = true;
+			}`,
+    'gateway mux start without websocket',
+  )
+  next = mustReplace(
+    next,
+    `		function remoteStreamUrl() {
+			const location = globalThis.location;
+			const base = location?.origin !== void 0 && location.origin !== "null" ? location.origin : INTERNAL_BASE;
+			const url = new URL(REMOTE_STREAM_MUX_PATH, base);
+			url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+			return url.href;
+		}`,
+    `		function resolveStreamBase() {
+			const location = globalThis.location;
+			return location?.origin !== void 0 && location.origin !== "null" ? location.origin : INTERNAL_BASE;
+		}
+		function remoteStreamUrl() {
+			return new URL(REMOTE_STREAM_MUX_PATH, resolveStreamBase()).href;
+		}`,
+    'gateway mux http base',
+  )
+  return mustReplace(
+    next,
+    `			async *open(endpoint, payload, signal) {
+				signal.throwIfAborted();
+				const streamId = randomUUID();
+				const inbox = new StreamInbox();
+				let carrier;
+				let opened = false;
+				let terminal = false;
+				const abort = () => {
+					inbox.fail(signal.reason);
+				};
+				signal.addEventListener("abort", abort, { once: true });
+				try {
+					const socket = await this.waitForSocket(signal);
+					signal.throwIfAborted();
+					carrier = socket;
+					this.streams.set(streamId, inbox);
+					this.send(socket, {
+						type: "open",
+						streamId,
+						endpoint,
+						payload
+					});
+					opened = true;
+					while (true) {
+						const frame = await inbox.next();
+						signal.throwIfAborted();
+						if (frame.type === "item") {
+							yield frame.value;
+							continue;
+						}
+						terminal = true;
+						if (frame.type === "error") throw new RemoteError(frame.error.code, frame.error.message, frame.error.details);
+						return;
+					}
+				} finally {
+					signal.removeEventListener("abort", abort);
+					this.streams.delete(streamId);
+					if (opened && !terminal && carrier?.readyState === WebSocket.OPEN) this.send(carrier, {
+						type: "cancel",
+						streamId
+					});
+				}
+			}`,
+    `			async *open(endpoint, payload, signal) {
+				signal.throwIfAborted();
+				const response = await fetch(new URL(REMOTE_STREAM_MUX_PATH, resolveStreamBase()), {
+					method: "POST",
+					headers: {
+						"content-type": "application/json",
+						accept: "text/event-stream"
+					},
+					body: JSON.stringify({
+						endpoint,
+						payload
+					}),
+					signal
+				});
+				if (!response.ok || response.body === null) throw new RemoteStreamCarrierError(\`api gateway: Remote stream SSE failed to open: HTTP \${String(response.status)}\`);
+				const reader = response.body.getReader();
+				const decoder = new TextDecoder();
+				let buffer = "";
+				try {
+					while (true) {
+						const chunk = await reader.read();
+						signal.throwIfAborted();
+						if (chunk.done) return;
+						buffer += decoder.decode(chunk.value, { stream: true });
+						const parts = buffer.split("\\n\\n");
+						buffer = parts.pop() ?? "";
+						for (const part of parts) {
+							const data = part.split("\\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trimStart()).join("\\n");
+							if (data === "") continue;
+							const frame = parseRemoteStreamServerMessage(data);
+							if (frame.type === "item") {
+								yield frame.value;
+								continue;
+							}
+							if (frame.type === "error") throw new RemoteError(frame.error.code, frame.error.message, frame.error.details);
+							return;
+						}
+					}
+				} finally {
+					try {
+						await reader.cancel();
+					} catch {}
+				}
+			}`,
+    'gateway mux open via SSE',
+  )
 }
 
 function patchSettingsBundle(source) {
   return mustReplace(
     source,
-    'const controller = new SettingsScopeController(connection.api, spec, connection.isLoopback ? "host" : "memory");',
-    'const controller = new SettingsScopeController(connection.api, spec, "host");',
+    'const persistence = ctx.remote.$host.isLoopback ? "host" : "memory";',
+    'const persistence = "host";',
     'settings host persistence',
   )
 }
@@ -54,12 +214,6 @@ function patchSettingsBundle(source) {
 function patchSettingsModelsBundle(source) {
   let next = mustReplace(
     source,
-    'const welcomeController = new WelcomeNoticeStore(connection.api, connection.isLoopback ? "host" : "memory");',
-    'const welcomeController = new WelcomeNoticeStore(connection.api, "host");',
-    'models welcome host persistence',
-  )
-  next = mustReplace(
-    next,
     '			intro: "Enter your API keys to use models from the following providers.",',
     '			intro: "Enter your API keys to use models from the following providers.",\n			officialProvided: "Models come from the official DeepSeek API. Image input is enabled for DeepSeek-V4-Flash-Vision. The key is read only from DEEPSEEK_API_KEY.",\n			learnMore: "Learn more",',
     'en official models copy',
@@ -85,14 +239,18 @@ function patchSettingsModelsBundle(source) {
   next = mustReplace(
     next,
     `		function ModelsSection(props) {
-			const { controller, useSnapshot, api, t } = props;
-			if (controller === void 0 || useSnapshot === void 0 || api === void 0 || t === void 0) return null;
-			return (0, react_jsx_runtime.jsx)(Loaded, { injected: {
-				controller,
-				useSnapshot,
-				api,
-				t
-			} });
+			const { controller, useSnapshot, operations, schema, t, renderSlot } = props;
+			if (controller === void 0 || useSnapshot === void 0 || operations === void 0 || schema === void 0 || t === void 0) return null;
+			return (0, react_jsx_runtime.jsx)(Loaded, {
+				injected: {
+					controller,
+					useSnapshot,
+					operations,
+					schema,
+					t
+				},
+				renderSlot
+			});
 		}`,
     `		function ModelsSection(props) {
 			const { t } = props;
@@ -151,17 +309,17 @@ function patchModelSelectionBundle(source) {
     source,
     '		var ModelDirectory = class {',
     `		function officialVisionGroups(groups) {
-			const official = groups.find((group) => group.id === "deepseek")
-				?? groups.find((group) => group.id === "deepseek-official");
+			const official = groups.find((group) => group.id === "deepseek-official")
+				?? groups.find((group) => group.id === "deepseek");
 			const listed = (official?.models ?? []).find((model) => model.id === "deepseek-v4-flash-vision-exp");
 			const vision = listed ?? {
 				id: "deepseek-v4-flash-vision-exp",
-				name: "DeepSeek-V4-Flash-Vision",
+				name: "DeepSeek-V4-Flash-Vision-Exp",
 				description: "多模态",
 				...official?.models?.[0]?.reasoning ? { reasoning: official.models[0].reasoning } : {}
 			};
 			return [{
-				id: official?.id ?? "deepseek",
+				id: official?.id ?? "deepseek-official",
 				name: official?.name ?? "DeepSeek",
 				models: [vision]
 			}];
@@ -177,70 +335,24 @@ function patchModelSelectionBundle(source) {
   )
   next = mustReplace(
     next,
-    `			async load() {
-				this.assertAvailable();
-				const generation = ++this.generation;
-				this.store.update((s) => {
-					s.status = "loading";
-					s.error = null;
+    `				this.store.set({
+					current,
+					routable: catalog.value.routableProviders.includes(current.provider),
+					groups: catalog.value.groups,
+					failures: catalog.value.failures,
+					status: this.store.getSnapshot().status === "selecting" ? "selecting" : "ready",
+					error: null
 				});`,
-    `			async load() {
-				this.assertAvailable();
-				const generation = ++this.generation;
-				const hadCatalog = this.store.getSnapshot().groups.length > 0;
-				this.store.update((s) => {
-					if (!hadCatalog) s.status = "loading";
-					s.error = null;
+    `				const officialGroups = officialVisionGroups(catalog.value.groups);
+				const snapshot = this.store.getSnapshot();
+				this.store.set({
+					current: this.inflightSelect === 0 ? current : snapshot.current,
+					routable: catalog.value.routableProviders.includes((this.inflightSelect === 0 ? current : snapshot.current)?.provider ?? current.provider),
+					groups: officialGroups,
+					failures: catalog.value.failures,
+					status: snapshot.status === "selecting" ? "selecting" : "ready",
+					error: null
 				});`,
-    'model catalog silent refresh',
-  )
-  next = mustReplace(
-    next,
-    `				const { result } = await this.sessions.models({ sessionId: this.sessionId });
-				if (this.disposed || generation !== this.generation) {
-					if (!result.ok) throw new Error(\`\${result.error.code}: \${result.error.message}\`);
-					return result.value;
-				}
-				if (!result.ok) {
-					this.store.update((s) => {
-						s.status = "error";
-						s.error = \`\${result.error.code}: \${result.error.message}\`;
-					});
-					throw new Error(\`session.models failed: \${result.error.code}: \${result.error.message}\`);
-				}
-				const { current, routable, groups, failures } = result.value;
-				this.store.update((s) => {
-					s.current = current;
-					s.routable = routable;
-					s.groups = groups;
-					s.failures = failures;
-					s.status = "ready";
-					s.error = null;
-				});
-				return result.value;`,
-    `				const { result } = await this.sessions.models({ sessionId: this.sessionId });
-				if (this.disposed || generation !== this.generation) {
-					if (!result.ok) throw new Error(\`\${result.error.code}: \${result.error.message}\`);
-					return { ...result.value, groups: officialVisionGroups(result.value.groups) };
-				}
-				if (!result.ok) {
-					this.store.update((s) => {
-						s.status = "error";
-						s.error = \`\${result.error.code}: \${result.error.message}\`;
-					});
-					throw new Error(\`session.models failed: \${result.error.code}: \${result.error.message}\`);
-				}
-				const { current, routable, groups, failures } = result.value;
-				const officialGroups = officialVisionGroups(groups);
-				this.store.update((s) => {
-					if (this.inflightSelect === 0) s.current = current;
-					s.routable = routable;
-					s.groups = officialGroups;
-					s.failures = failures;
-					s.status = "ready";
-					s.error = null;
-				});
-				return { ...result.value, groups: officialGroups };`,
     'keep only official DeepSeek vision model',
   )
   next = mustReplace(
@@ -252,7 +364,7 @@ function patchModelSelectionBundle(source) {
 					s.status = "selecting";
 					s.error = null;
 				});
-				const { result } = await this.sessions.selectModel({
+				const result = await this.sessions.selectModel({
 					sessionId: this.sessionId,
 					provider: selection.provider,
 					model: selection.model,
@@ -270,11 +382,10 @@ function patchModelSelectionBundle(source) {
 					throw new Error(\`session.selectModel failed: \${result.error.code}: \${result.error.message}\`);
 				}
 				this.store.update((s) => {
-					s.current = result.value.selected;
-					s.routable = true;
 					s.status = "ready";
 					s.error = null;
 				});
+				this.syncInputs();
 			}`,
     `			async select(selection) {
 				this.assertAvailable();
@@ -293,7 +404,7 @@ function patchModelSelectionBundle(source) {
 					s.error = null;
 				});
 				try {
-					const { result } = await this.sessions.selectModel({
+					const result = await this.sessions.selectModel({
 						sessionId: this.sessionId,
 						provider: selection.provider,
 						model: selection.model,
@@ -305,11 +416,10 @@ function patchModelSelectionBundle(source) {
 					}
 					if (!result.ok) throw new Error(\`session.selectModel failed: \${result.error.code}: \${result.error.message}\`);
 					this.store.update((s) => {
-						s.current = result.value.selected;
-						s.routable = true;
 						s.status = "ready";
 						s.error = null;
 					});
+					this.syncInputs();
 				} catch (error) {
 					if (!this.disposed && generation === this.generation) {
 						this.store.update((s) => {
@@ -362,28 +472,13 @@ function patchModelSelectionBundle(source) {
     `				lastActionRef.current = "select";
 				select(selection).then(settleSelection);
 			};
-			const modelLabel`,
+			const waiting = state.current === null && state.status === "loading";`,
     `				lastActionRef.current = "select";
 				close(true);
 				select(selection).then(settleSelection);
 			};
-			const modelLabel`,
+			const waiting = state.current === null && state.status === "loading";`,
     'close effort menu immediately',
-  )
-  next = mustReplace(
-    next,
-    `			const show = () => {
-				setPane("root");
-				setOpen(true);
-				reload();
-			};`,
-    `			const show = () => {
-				setPane("root");
-				setOpen(true);
-				if (state.groups.length === 0) reload();
-				else load();
-			};`,
-    'reuse cached model catalog',
   )
   return next
 }
@@ -428,41 +523,6 @@ function patchAgentPresetBundle(source) {
   )
   next = mustReplace(
     next,
-    `				items: options.map((option) => {
-					const name = presetDisplayText(option, t).name;
-					return {
-						id: option.id,
-						label: option.trust === "user" ? \`\${name} · \${t("userTrust")}\` : name
-					};
-				}),
-				selectedId,
-				onSelect: (id) => {
-					onOpenChange(false);
-					onSelect(id);
-				},`,
-    `				items: options.map((option) => {
-					const name = presetDisplayText(option, t).name;
-					const locked = isLockedBuiltInPreset(option.id);
-					const text = option.trust === "user" ? \`\${name} · \${t("userTrust")}\` : name;
-					return {
-						id: option.id,
-						label: locked ? (0, react_jsx_runtime.jsx)("span", {
-							className: "dsh-makers-tip dsh-makers-locked",
-							"data-tip": t("presetUnavailable"),
-							children: text
-						}) : text
-					};
-				}),
-				selectedId,
-				onSelect: (id) => {
-					if (isLockedBuiltInPreset(id)) return;
-					onOpenChange(false);
-					onSelect(id);
-				},`,
-    'settings menu items',
-  )
-  next = mustReplace(
-    next,
     `				items: state.options.map((option) => {
 					const text = presetDisplayText(option, t);
 					return {
@@ -483,39 +543,26 @@ function patchAgentPresetBundle(source) {
     next,
     `				onSelect: (id) => {
 					setOpen(false);
-					select(id);
-				},`,
+					const picked = state.options.find((option) => option.id === id);`,
     `				onSelect: (id) => {
 					if (isLockedBuiltInPreset(id)) return;
 					setOpen(false);
-					select(id);
-				},`,
+					const picked = state.options.find((option) => option.id === id);`,
     'seat menu select',
   )
   next = mustReplace(
     next,
-    `			async select(id) {
-				const before = this.store.getSnapshot();
-				if (before.status === "saving" || id === before.currentValue) return;`,
-    `			async select(id) {
-				if (isLockedBuiltInPreset(id)) return;
-				const before = this.store.getSnapshot();
-				if (before.status === "saving" || id === before.currentValue) return;`,
-    'settings select guard',
-  )
-  next = mustReplace(
-    next,
     `			async makeDefault(id) {
-				const failure = await writeDefaultPreset(this.api, id);`,
+				const failure = await writeDefaultPreset(this.ctx, id);`,
     `			async makeDefault(id) {
 				if (isLockedBuiltInPreset(id)) return;
-				const failure = await writeDefaultPreset(this.api, id);`,
+				const failure = await writeDefaultPreset(this.ctx, id);`,
     'makeDefault guard',
   )
   next = mustReplace(
     next,
-    '.rtSEdW_card:hover:not(.rtSEdW_cardActive){border-color:var(--dsw-alias-label-dimmed)}',
-    '.rtSEdW_card:hover:not(.rtSEdW_cardActive):not([data-locked=true]){border-color:var(--dsw-alias-label-dimmed)}.rtSEdW_card[data-locked=true]{opacity:.45;filter:grayscale(.2);cursor:not-allowed}',
+    '.rtSEdW_card:hover:not(.rtSEdW_cardActive){background:var(--dsw-alias-interactive-bg-hover)}',
+    '.rtSEdW_card:hover:not(.rtSEdW_cardActive):not([data-locked=true]){background:var(--dsw-alias-interactive-bg-hover)}.rtSEdW_card[data-locked=true]{opacity:.45;filter:grayscale(.2);cursor:not-allowed}',
     'locked card css',
   )
   next = mustReplace(
@@ -552,9 +599,10 @@ function patchAgentPresetBundle(source) {
 												type: "button",
 												className: AgentPresetSection_module_css_default.cardMain,
 												"aria-pressed": row.isDefault,
-												disabled: row.isDefault || row.broken !== void 0,
+												disabled: row.isDefault,
+												"aria-disabled": row.broken !== void 0,
 												"aria-label": \`\${row.broken !== void 0 ? t("brokenBadge") : row.isDefault ? t("inUse") : t("setDefault")}: \${text.name}\`,
-												title: row.broken ?? (row.isDefault ? t("inUse") : t("setDefault")),`,
+												title: row.broken !== void 0 ? t("brokenBadge") : row.isDefault ? t("inUse") : t("setDefault"),`,
     `									children: group.map(({ row, text }) => (0, react_jsx_runtime.jsxs)("li", {
 										className: row.broken !== void 0 ? \`\${AgentPresetSection_module_css_default.card} \${AgentPresetSection_module_css_default.cardBroken}\` : row.isDefault ? \`\${AgentPresetSection_module_css_default.card} \${AgentPresetSection_module_css_default.cardActive}\` : AgentPresetSection_module_css_default.card,
 										"data-locked": isLockedBuiltInPreset(row.id) ? "true" : void 0,
@@ -564,22 +612,25 @@ function patchAgentPresetBundle(source) {
 												type: "button",
 												className: AgentPresetSection_module_css_default.cardMain,
 												"aria-pressed": row.isDefault,
-												disabled: isLockedBuiltInPreset(row.id) || row.isDefault || row.broken !== void 0,
+												disabled: isLockedBuiltInPreset(row.id) || row.isDefault,
+												"aria-disabled": row.broken !== void 0,
 												"aria-label": \`\${isLockedBuiltInPreset(row.id) ? t("presetUnavailable") : row.broken !== void 0 ? t("brokenBadge") : row.isDefault ? t("inUse") : t("setDefault")}: \${text.name}\`,
-												title: isLockedBuiltInPreset(row.id) ? t("presetUnavailable") : row.broken ?? (row.isDefault ? t("inUse") : t("setDefault")),`,
+												title: isLockedBuiltInPreset(row.id) ? t("presetUnavailable") : row.broken !== void 0 ? t("brokenBadge") : row.isDefault ? t("inUse") : t("setDefault"),`,
     'settings cards',
   )
   next = mustReplace(
     next,
     `			async select(id) {
-				if (this.store.getSnapshot().busy) return;
+				if (this.store.getSnapshot().busy) return void 0;
 				this.stage(id);
 				await this.apply();
+				return this.store.getSnapshot().error ?? void 0;
 			}`,
     `			async select(id) {
-				if (isLockedBuiltInPreset(id) || this.store.getSnapshot().busy) return;
+				if (isLockedBuiltInPreset(id) || this.store.getSnapshot().busy) return void 0;
 				this.stage(id);
 				await this.apply();
+				return this.store.getSnapshot().error ?? void 0;
 			}`,
     'seat select guard',
   )
@@ -614,14 +665,7 @@ function patchAgentPresetBundle(source) {
   )
   next = mustReplace(
     next,
-    `			ctx.slots.inject("settings.general.item", () => ctx.slots.register({
-				name: "settings.general.item",
-				id: "agent-preset",
-				order: -25,
-				locale: "settings.agentPreset",
-				inject: injected
-			}, AgentPresetRow));
-			ctx.slots.inject("settings.section", () => ctx.slots.register({
+    `			ctx.slots.inject("settings.section", () => ctx.slots.register({
 				name: "settings.section",
 				id: "agent-presets",
 				order: 20,
@@ -651,8 +695,8 @@ function patchPermissionPresetsBundle(source) {
   )
   next = mustReplace(
     next,
-    '			"confirm.description": "启用 Full access 后，新会话将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任后续任务时使用。",',
-    '			"confirm.description": "启用 Full access 后，新会话可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任后续任务时使用。",',
+    '			"confirm.description": "启用完全权限后，新会话将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任后续任务时使用。",',
+    '			"confirm.description": "启用完全权限后，新会话可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任后续任务时使用。",',
     'settings full access zh confirm',
   )
   next = mustReplace(
@@ -663,8 +707,8 @@ function patchPermissionPresetsBundle(source) {
   )
   next = mustReplace(
     next,
-    '			"confirm.description": "启用 Full access 后，agent 将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任当前任务时使用。",',
-    '			"confirm.description": "启用 Full access 后，agent 可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任当前任务时使用。",',
+    '			"confirm.description": "启用完全权限后，智能体将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任当前任务时使用。",',
+    '			"confirm.description": "启用完全权限后，智能体可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任当前任务时使用。",',
     'session full access zh confirm',
   )
   return mustReplace(
@@ -679,8 +723,8 @@ function patchConversationBundle(source) {
   let next = source
   next = mustReplace(
     next,
-    '			"access.confirm.description": "启用 Full access 后，agent 将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任当前任务时使用。",',
-    '			"access.confirm.description": "启用 Full access 后，agent 可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任当前任务时使用。",\n			"access.read-only.detail": "只能查看 EdgeOne Makers 沙箱：列出和读取文件。写入、运行命令或发布预览时会询问你确认。",\n			"access.workspace-write.detail": "可在 EdgeOne Makers 沙箱中读写文件。运行命令和发布预览时会询问你确认。",\n			"access.danger-full-access.detail": "开放全部 Makers 沙箱能力：文件、命令和预览，不再弹出确认。仍然无法访问本机。",',
+    '			"access.confirm.description": "启用完全权限后，智能体将减少确认步骤，并且可以直接执行更多操作，包括敏感操作、文件修改或外部命令。仅建议在你信任当前任务时使用。",',
+    '			"access.confirm.description": "启用完全权限后，智能体可以在 EdgeOne Makers 沙箱中直接运行命令并发布预览，且不再弹出确认。仍然无法访问你的本机。仅建议在你信任当前任务时使用。",\n			"access.read-only.detail": "只能查看 EdgeOne Makers 沙箱：列出和读取文件。写入、运行命令或发布预览时会询问你确认。",\n			"access.workspace-write.detail": "可在 EdgeOne Makers 沙箱中读写文件。运行命令和发布预览时会询问你确认。",\n			"access.danger-full-access.detail": "开放全部 Makers 沙箱能力：文件、命令和预览，不再弹出确认。仍然无法访问本机。",',
     'conversation zh permission copy',
   )
   next = mustReplace(
@@ -803,10 +847,10 @@ function patchWorkspaceBundle(source) {
     next,
     `					expanded,
 					containsCurrent: g.key === currentGroup,
-					sessions: expanded ? g.sessions.map((session) => sessionNode(session, descendants)) : []`,
+					sessions: expanded ? g.sessions.map((session) => sessionNode(session, descendants, pendingInteractions)) : []`,
     `					expanded: true,
 					containsCurrent: g.key === currentGroup,
-					sessions: g.sessions.map((session) => sessionNode(session, descendants))`,
+					sessions: g.sessions.map((session) => sessionNode(session, descendants, pendingInteractions))`,
     'always expand workspace groups',
   )
   next = mustReplace(
@@ -814,6 +858,7 @@ function patchWorkspaceBundle(source) {
     `								children: [
 									(0, react_jsx_runtime.jsx)(ProjectRowItem, {
 										group,
+										home,
 										t,
 										onToggle: () => {
 											if (group.expanded) setExpandedSessionGroups((keys) => keys.filter((key) => key !== group.key));
@@ -837,9 +882,9 @@ function patchWorkspaceBundle(source) {
 											}
 										}
 									}),
-									(expandedSessionGroups.includes(group.key) ? group.sessions : group.sessions.slice(0, COLLAPSED_SESSION_LIMIT)).map((node) => {`,
+									(sessionsExpanded ? group.sessions : collapsed.rows).map((node) => {`,
     `								children: [
-									(expandedSessionGroups.includes(group.key) ? group.sessions : group.sessions.slice(0, COLLAPSED_SESSION_LIMIT)).map((node) => {`,
+									(sessionsExpanded ? group.sessions : collapsed.rows).map((node) => {`,
     'hide workspace project row',
   )
   next = mustReplace(
@@ -876,59 +921,14 @@ function patchWorkspaceBundle(source) {
 }
 
 function patchLocaleBundle(source) {
-  let next = mustReplace(
-    source,
-    `			publish(active, localeChanged) {
-				this.snapshot = Object.freeze({
-					active,
-					locales: this.snapshot.locales,
-					revision: this.snapshot.revision + 1
-				});
-				if (localeChanged) this.ctx.emit("locale/change", this.snapshot);`,
-    `			publish(active, localeChanged) {
-				this.snapshot = Object.freeze({
-					active,
-					locales: this.snapshot.locales,
-					revision: this.snapshot.revision + 1
-				});
-				if (typeof document !== "undefined") document.documentElement.lang = active === "en" ? "en" : "zh-CN";
-				if (localeChanged) this.ctx.emit("locale/change", this.snapshot);`,
-    'sync html lang',
-  )
   return mustReplace(
-    next,
-    `		/**
-		* The browser's own language wins over {@link FALLBACK_LOCALE}; an explicit
-		* Host preference may replace this provisional value after plugin activation.
-		*/
-		function resolveInitialLocale() {
-			return detectBrowserLocale() ?? "zh";
-		}
-		/**
-		* The first shipped locale the browser asks for, matched on the primary
-		* subtag so every regional variant lands on its language (\`zh-Hans-CN\` -> zh,
-		* \`en-GB\` -> en). \`window\` is the browser test, not \`navigator\`: Node exposes
-		* a global \`navigator\` reporting the machine's own language, which would
-		* otherwise decide the locale for non-browser runs (node e2e booting the
-		* client tree). \`navigator.language\` trails the ordered \`languages\` list and
-		* covers its absence on hosts that expose only the single tag.
-		*/
-		function detectBrowserLocale() {
-			if (typeof window === "undefined") return void 0;
-			for (const tag of [...navigator.languages ?? [], navigator.language]) {
-				const primary = tag.toLowerCase().split("-")[0];
-				const match = LOCALES.find((locale) => locale.id === primary);
-				if (match) return match.id;
-			}
+    source,
+    `		function resolveInitialLocale(locales) {
+			return detectBrowserLocale(locales) ?? "en";
 		}`,
-    `		/**
-		* Hostname wins over {@link FALLBACK_LOCALE}: \`.edgeone.dev\` is English, all
-		* other hosts are Chinese. An explicit Host preference may replace this
-		* provisional value after plugin activation.
-		*/
-		function resolveInitialLocale() {
+    `		function resolveInitialLocale(locales) {
 			if (typeof window !== "undefined" && location.hostname.endsWith(".edgeone.dev")) return "en";
-			return "zh";
+			return locales.some((locale) => locale.id === "zh") ? "zh" : "en";
 		}`,
     'hostname default locale',
   )
@@ -965,6 +965,7 @@ function patchSessionLogExportBundle(source) {
 
 async function clientPackages() {
   const rows = []
+  const sources = new Map()
   for (const directory of await readdir(modulesRoot)) {
     const packageDir = join(modulesRoot, directory)
     let manifest
@@ -973,7 +974,7 @@ async function clientPackages() {
     if (client?.platform !== 'web' || excluded.has(manifest.name)) continue
     let source
     try { source = await readFile(join(packageDir, 'lib', 'client.js'), 'utf8') } catch { continue }
-    if (manifest.name === '@deepseek-ai/dsh-client-connection') source = patchConnectionBundle(source)
+    if (manifest.name === '@deepseek-ai/dsh-api-gateway') source = patchGatewayBundle(source)
     if (manifest.name === '@deepseek-ai/dsh-client-ui-agent-preset') source = patchAgentPresetBundle(source)
     if (manifest.name === '@deepseek-ai/dsh-client-ui-permission-presets') source = patchPermissionPresetsBundle(source)
     if (manifest.name === '@deepseek-ai/dsh-client-ui-conversation') source = patchConversationBundle(source)
@@ -987,15 +988,42 @@ async function clientPackages() {
     await mkdir(dirname(target), { recursive: true })
     await writeFile(target, source)
     const rev = hash(source)
+    const inject = Array.isArray(client.inject) ? client.inject : []
+    const external = Array.isArray(client.external) ? client.external : []
     rows.push({
       id: manifest.name,
       url: `/plugins/${manifest.name}/client.js?rev=${rev}`,
       rev,
-      inject: Array.isArray(client.inject) ? client.inject : [],
+      ...(inject.length > 0 ? { inject } : {}),
+      ...(external.length > 0 ? { external } : {}),
       ...(client.immediately === true ? { immediately: true } : {}),
     })
+    sources.set(manifest.name, source)
   }
-  return rows.sort((left, right) => left.id.localeCompare(right.id))
+  return {
+    rows: orderByModuleGraph(rows),
+    sources,
+  }
+}
+
+async function writeComboBatch(phase, ids, sources) {
+  if (ids.length === 0) throw new Error(`DSH Web ${phase} batch is empty.`)
+  const script = ids.map((id) => {
+    const source = sources.get(id)
+    if (source === undefined) throw new Error(`DSH Web ${phase} batch is missing ${id}.`)
+    return stripSourceMapTrailer(source)
+  }).join('\n')
+  const rev = hash(script)
+  const relative = `/plugins/_batch/${phase}.js?rev=${rev}`
+  const target = join(publicDir, 'plugins', '_batch', `${phase}.js`)
+  await mkdir(dirname(target), { recursive: true })
+  await writeFile(target, script)
+  return {
+    phase,
+    url: relative,
+    rev,
+    entries: ids,
+  }
 }
 
 const makersActionsHead = [
@@ -1093,16 +1121,48 @@ const makersActionsHead = [
   '<!-- /dsh-makers-actions -->',
 ].join('\n')
 
-function makersBootstrap(manifest) {
-  const serialized = JSON.stringify(manifest).replaceAll('<', '\\u003c')
-  return `<style>
+function bootProtocolMarkup(graph) {
+  const serialized = JSON.stringify(graph).replaceAll('<', '\\u003c')
+  const queue = `(()=>{
+const pendingQueue=[]
+window.__ModuleLoader__={
+  mode:"queue",
+  pendingQueue,
+  load(registration){pendingQueue.push(registration)},
+  create(options){
+    if(this.mode!=="queue")throw new Error("client-modules: window.__ModuleLoader__.create called after module-system boot")
+    const index=pendingQueue.findIndex(registration=>registration.id===${JSON.stringify(CLIENT_MODULES_ID)})
+    const registration=pendingQueue[index]
+    if(registration===undefined)throw new Error(${JSON.stringify(`client-modules: HTML did not preload ${CLIENT_MODULES_ID}/client.js`)})
+    pendingQueue.splice(index,1)
+    const exports=registration.factory(specifier=>{
+      throw new Error('client-modules: ${CLIENT_MODULES_ID}/client.js requested external "'+specifier+'" before the module system existed')
+    })
+    if(typeof exports!=="object"||exports===null||typeof exports.createClientModuleSystem!=="function"||typeof exports.apply!=="function"){
+      throw new Error("client-modules: ${CLIENT_MODULES_ID}/client.js did not export the bootstrap module face")
+    }
+    return exports.createClientModuleSystem(this,{id:registration.id,exports},options)
+  }
+}
+})()`
+  const application = graph.batches.filter((batch) => batch.phase === 'application')
+  const bootstrap = graph.batches.filter((batch) => batch.phase === 'bootstrap')
+  return [
+    `<script>${queue}<\/script>`,
+    ...application.map((batch) => `<link rel="preload" as="script" href="${escapeHtmlAttribute(batch.url)}">`),
+    ...bootstrap.map((batch) => `<script src="${escapeHtmlAttribute(batch.url)}"><\/script>`),
+    `<script>globalThis["__DSH_BOOT__"] = ${serialized}<\/script>`,
+  ].join('')
+}
+
+function makersBootstrap(graph) {
+  return `${bootProtocolMarkup(graph)}<style>
 .dsh-makers-tip[data-tip]{position:relative;display:inline-flex;max-width:100%;vertical-align:middle;cursor:not-allowed}
 .dsh-makers-tip[data-tip]>:disabled{pointer-events:none}
 .dsh-makers-locked{opacity:.45;cursor:not-allowed}
 #dsh-makers-hover-tip{position:fixed;z-index:2147483647;pointer-events:none;background:var(--dsw-alias-label-primary,#1a1a1a);color:var(--dsw-alias-bg-layer-3,#fff);white-space:nowrap;border-radius:6px;padding:4px 8px;font-size:11px;line-height:17px;font-weight:400;max-width:min(320px,calc(100vw - 16px));box-shadow:0 4px 12px rgba(0,0,0,.18)}
 #dsh-makers-hover-tip[hidden]{display:none!important}
 </style><script>
-window.__DSH_BOOT__ = ${serialized};
 (() => {
   const key = 'dsh-makers-web-conversation-id';
   let conversationId = localStorage.getItem(key);
@@ -1178,9 +1238,20 @@ ${makersActionsHead}`
 await rm(publicDir, { recursive: true, force: true })
 await mkdir(publicDir, { recursive: true })
 await cp(webDist, publicDir, { recursive: true })
-const entries = await clientPackages()
+const { rows: entries, sources } = await clientPackages()
 if (entries.length < 30) throw new Error(`Expected the DSH Web roster, found only ${String(entries.length)} bundles.`)
-const graph = { rev: hash(JSON.stringify(entries)), entries }
+if (!sources.has(CLIENT_MODULES_ID)) throw new Error(`Expected ${CLIENT_MODULES_ID} in the DSH Web roster.`)
+const bootstrapIds = [CLIENT_MODULES_ID]
+const applicationIds = entries.map((entry) => entry.id).filter((id) => id !== CLIENT_MODULES_ID)
+const batches = [
+  await writeComboBatch('bootstrap', bootstrapIds, sources),
+  await writeComboBatch('application', applicationIds, sources),
+]
+const graph = {
+  rev: hash(JSON.stringify({ entries, batches })),
+  entries,
+  batches,
+}
 const shellHtml = await readFile(join(webDist, 'index.html'), 'utf8')
 const headWithCharset = '<head>\n    <meta charset="utf-8" />'
 if (!shellHtml.includes(headWithCharset)) {
@@ -1189,7 +1260,9 @@ if (!shellHtml.includes(headWithCharset)) {
 // Keep charset first so the HTML5 encoding sniff (first 1024 bytes) sees UTF-8
 // before the overlay script's Chinese copy. Injecting before charset made first
 // paint mojibake until a reload remembered UTF-8.
-const html = shellHtml.replace(headWithCharset, `${headWithCharset}${makersBootstrap(graph)}`)
+const html = shellHtml
+  .replace(headWithCharset, `${headWithCharset}${makersBootstrap(graph)}`)
+  .replace('</body>', '<script>(globalThis.__DSH_BOOT_READY__ ??= Promise.withResolvers()).resolve()<\/script></body>')
 await writeFile(join(root, 'index.html'), html)
 await writeFile(join(publicDir, 'index.html'), html)
-console.log(`Prepared DSH Web with ${String(entries.length)} client plugins.`)
+console.log(`Prepared DSH Web ${graph.rev} with ${String(entries.length)} client plugins.`)
