@@ -84,10 +84,7 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
     description: 'Execute a deterministic command in the EdgeOne Makers sandbox and return the result.',
     inputSchema: {},
   }, async () => {
-    const result = await context.sandbox.commands.run(
-      "printf 'DSH_MAKERS_SANDBOX_OK'",
-      { timeout: 10 },
-    )
+    const result = await runWorkspaceCommand(context, conversationId, "printf 'DSH_MAKERS_SANDBOX_OK'", 10)
     return {
       content: [{
         type: 'text',
@@ -98,7 +95,6 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
           exitCode: result.exitCode,
         }),
       }],
-      isError: result.exitCode !== 0,
     }
   })
 
@@ -106,13 +102,14 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
     description: 'Wait in the EdgeOne Makers sandbox. Used only to validate cancellation.',
     inputSchema: { seconds: z.number().int().min(1).max(30) },
   }, async ({ seconds }) => {
-    const result = await context.sandbox.commands.run(
+    const result = await runWorkspaceCommand(
+      context,
+      conversationId,
       `sleep ${String(seconds)}; printf 'WAIT_FINISHED'`,
-      { timeout: seconds + 5 },
+      seconds + 5,
     )
     return {
       content: [{ type: 'text', text: result.stdout || result.stderr }],
-      isError: result.exitCode !== 0,
     }
   })
 
@@ -235,7 +232,7 @@ async function createMcpServer(context: any, conversationId: string): Promise<Mc
   }, async ({ command, timeout }) => {
     try {
       const result = await runWorkspaceCommand(context, conversationId, command, timeout)
-      return { content: [{ type: 'text', text: JSON.stringify(result) }], isError: result.exitCode !== 0 }
+      return { content: [{ type: 'text', text: JSON.stringify(result) }] }
     } catch (error) {
       return { content: [{ type: 'text', text: error instanceof Error ? error.message : String(error) }], isError: true }
     }

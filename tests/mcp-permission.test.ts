@@ -99,4 +99,5 @@ test('MCP bridge registers every tool instead of filtering by mode', async () =>
   assert.match(source, /register\('workspace_write_pptx'/)
   assert.doesNotMatch(source, /if \(!allowed\.has/)
   assert.doesNotMatch(source, /permissionDeniedMessage/)
+  assert.doesNotMatch(source, /isError: result\.exitCode !== 0/)
 })

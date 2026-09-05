@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { buildDocx, buildPptx, buildXlsx } from '../agents/_office-files.ts'
-import { listSandboxBrowserFiles, matchSandboxFileReferences, normalizeWorkspacePath, publishWorkspacePreview, readSandboxBrowserFile, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
+import { commandFailureResult, listSandboxBrowserFiles, matchSandboxFileReferences, normalizeWorkspacePath, publishWorkspacePreview, readSandboxBrowserFile, runWorkspaceCommand, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
 
 test('sandbox file references match one directory level like the composer @ menu', () => {
   const items = [
@@ -164,6 +164,46 @@ test('writeWorkspaceFile rejects Office extensions so UTF-8 cannot fake them', a
   await assert.rejects(() => writeWorkspaceFile(context, conversationId, 'b.xlsx', '1,2,3'), /workspace_write_xlsx/)
   await assert.rejects(() => writeWorkspaceFile(context, conversationId, 'c.pptx', '# slide'), /workspace_write_pptx/)
   await assert.rejects(() => writeWorkspaceBytes(context, conversationId, '../secret.pptx', new Uint8Array([1])), /Invalid workspace file path/)
+})
+
+test('local commands run through POSIX bash so pipelines like head keep working', async () => {
+  const conversationId = `posix-${Date.now()}`
+  const context = { store: { async getConversation() { return { metadata: {} } }, async updateConversation() {} } }
+  const piped = await runWorkspaceCommand(context, conversationId, "printf 'hello' | head -c 4")
+  assert.equal(piped.exitCode, 0)
+  assert.equal(piped.stdout, 'hell')
+  const failed = await runWorkspaceCommand(context, conversationId, 'false')
+  assert.equal(failed.exitCode, 1)
+  await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
+    recursive: true,
+    force: true,
+  })
+})
+
+test('EdgeOne sandbox command throws stay structured instead of crashing the tool', async () => {
+  const thrown = new Error('Sandbox command failed [instanceId=x, expiresAt=2026-09-06T04:44:16+08:00]: exit status 1 (code=SANDBOX_UNKNOWN_ERROR, operation=command)')
+  assert.equal(commandFailureResult('curl https://example.com', thrown).exitCode, 1)
+  assert.match(commandFailureResult('curl https://example.com', thrown).stderr, /SANDBOX_UNKNOWN_ERROR/)
+  const context = {
+    store: { async getConversation() { return { metadata: {} } }, async updateConversation() {} },
+    sandbox: {
+      kind: 'edgeone',
+      files: {
+        async makeDir() {},
+        async write() {},
+        async read() { return '' },
+        async exists() { return false },
+      },
+      commands: {
+        async run() {
+          throw thrown
+        },
+      },
+    },
+  }
+  const result = await runWorkspaceCommand(context, 'edgeone-throw', 'curl https://example.com')
+  assert.equal(result.exitCode, 1)
+  assert.match(result.stderr, /SANDBOX_UNKNOWN_ERROR/)
 })
 
 test('local preview publishes a sandbox HTML URL instead of waiting on Linux sandbox hosts', async () => {

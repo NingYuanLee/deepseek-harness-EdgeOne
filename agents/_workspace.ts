@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -133,21 +134,50 @@ async function listWorkspaceFromDisk(conversationId: string): Promise<WorkspaceI
   return items
 }
 
-async function runDiskCommand(
+type ShellResult = { stdout: string; stderr: string; exitCode: number }
+
+let posixBash: string | undefined
+
+function resolvePosixBash(): string {
+  if (posixBash !== undefined) return posixBash
+  const candidates = process.platform === 'win32'
+    ? [
+      process.env.DSH_BASH,
+      process.env.BASH,
+      'C:\\Program Files\\Git\\bin\\bash.exe',
+      'C:\\Program Files\\Git\\usr\\bin\\bash.exe',
+      'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+    ]
+    : ['/bin/bash', '/usr/bin/bash', '/bin/sh']
+  posixBash = candidates.find(candidate => Boolean(candidate) && existsSync(candidate as string)) ?? ''
+  return posixBash
+}
+
+export function commandFailureResult(command: string, error: unknown): { command: string } & ShellResult {
+  const message = error instanceof Error ? error.message : String(error)
+  const exit = /exit status (\d+)/i.exec(message)
+  return {
+    command,
+    stdout: '',
+    stderr: message,
+    exitCode: exit ? Number(exit[1]) : 1,
+  }
+}
+
+export async function runPosixShell(
   command: string,
   cwd: string,
   timeout: number,
-): Promise<{ command: string; stdout: string; stderr: string; exitCode: number }> {
+): Promise<ShellResult> {
   await mkdir(cwd, { recursive: true })
   const trimmed = command.trim()
   const printf = trimmed.match(/^printf\s+'([^']*)'$/)
-  if (printf) return { command, stdout: printf[1], stderr: '', exitCode: 0 }
+  if (printf) return { stdout: printf[1], stderr: '', exitCode: 0 }
   return await new Promise((resolve, reject) => {
-    const child = spawn(command, {
-      cwd,
-      shell: true,
-      windowsHide: true,
-    })
+    const bash = resolvePosixBash()
+    const child = bash
+      ? spawn(bash, ['-c', trimmed], { cwd, windowsHide: true })
+      : spawn(trimmed, { cwd, shell: true, windowsHide: true })
     let stdout = ''
     let stderr = ''
     const timer = setTimeout(() => {
@@ -164,9 +194,36 @@ async function runDiskCommand(
     })
     child.once('close', code => {
       clearTimeout(timer)
-      resolve({ command, stdout, stderr, exitCode: code ?? 1 })
+      resolve({ stdout, stderr, exitCode: code ?? 1 })
     })
   })
+}
+
+async function invokeSandboxCommand(
+  context: any,
+  command: string,
+  options: { cwd?: string; timeout?: number },
+): Promise<ShellResult> {
+  try {
+    const result = await context.sandbox.commands.run(command, options)
+    return {
+      stdout: String(result.stdout || '').slice(-20_000),
+      stderr: String(result.stderr || '').slice(-20_000),
+      exitCode: Number(result.exitCode ?? 1),
+    }
+  } catch (error) {
+    const failed = commandFailureResult(command, error)
+    return { stdout: failed.stdout, stderr: failed.stderr, exitCode: failed.exitCode }
+  }
+}
+
+async function runDiskCommand(
+  command: string,
+  cwd: string,
+  timeout: number,
+): Promise<{ command: string } & ShellResult> {
+  const result = await runPosixShell(command, cwd, timeout)
+  return { command, ...result }
 }
 
 export async function hydrateSidecarWorkspace(
@@ -280,7 +337,8 @@ async function loadWorkspaceSnapshot(context: any, conversationId: string): Prom
 }
 
 async function workspaceHasFiles(context: any, root: string): Promise<boolean> {
-  const result = await context.sandbox.commands.run(
+  const result = await invokeSandboxCommand(
+    context,
     "find . -mindepth 1 -maxdepth 1 ! -name preview -print -quit",
     { cwd: root, timeout: 10 },
   )
@@ -357,7 +415,7 @@ export async function listWorkspace(context: any, conversationId: string): Promi
     .map(directory => `-path './${directory}'`)
     .join(' -o ')
   const expression = `find . \\( ${ignored} \\) -prune -o -maxdepth 6`
-  const result = await context.sandbox.commands.run([
+  const result = await invokeSandboxCommand(context, [
     `{ ${expression} -printf '%y\\t%T@\\t%s\\t%p\\n' 2>/dev/null; }`,
     '||',
     `{ ${expression} -print | while IFS= read -r path; do`,
@@ -569,15 +627,15 @@ export async function runWorkspaceCommand(
     )
   }
   const root = await ensureWorkspace(context, conversationId)
-  const result = await context.sandbox.commands.run(command, {
+  const result = await invokeSandboxCommand(context, command, {
     cwd: root,
     timeout: Math.min(Math.max(Math.round(timeout), 1), 300),
   })
   return {
     command,
-    stdout: String(result.stdout || '').slice(-20_000),
-    stderr: String(result.stderr || '').slice(-20_000),
-    exitCode: Number(result.exitCode),
+    stdout: result.stdout,
+    stderr: result.stderr,
+    exitCode: result.exitCode,
   }
 }
 
