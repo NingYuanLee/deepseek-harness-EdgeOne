@@ -45,6 +45,11 @@ test('production pruning removes dependency source maps to stay below the Agent 
   )
   assert.match(source, /removeSourceMaps/)
   assert.match(source, /endsWith\('\.map'\)/)
+  assert.match(source, /mermaid/)
+  assert.match(source, /react-icons/)
+  assert.match(source, /dsh-better-sidebar/)
+  assert.match(source, /process\.platform === 'linux'/)
+  assert.match(source, /230 \* 1024 \* 1024/)
 })
 
 test('sidecar config binds Makers Gateway and MCP bridges', async () => {
