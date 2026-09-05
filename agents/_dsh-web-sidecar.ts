@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path'
 import { startLocalGatewayProxy, type LocalGatewayProxy } from './_gateway-proxy.ts'
 import { makersMcpPermissionSource } from './_makers-mcp-permission.mjs'
 import { startLocalMcpBridge, type LocalMcpBridge } from './_mcp-bridge.ts'
+import { hydrateSidecarWorkspace } from './_workspace.ts'
 
 const require = createRequire(import.meta.url)
 
@@ -331,6 +332,9 @@ async function writeProfilePatch(
     '        memberProvider: fork',
     `        memberModel: ${JSON.stringify(options.defaultModel)}`,
     '',
+    '    - id: better-sidebar',
+    "      name: 'dsh-better-sidebar'",
+    '',
     '    - id: makers-mcp',
     "      name: '@deepseek-ai/dsh-mcp-client'",
     '      config:',
@@ -374,7 +378,7 @@ async function exchangeLaunchToken(port: number, token: string): Promise<string 
   return cookieFromSetCookie(response.headers.get('set-cookie'))
 }
 
-async function callRpc(port: number, cookie: string, method: string, payload: Record<string, unknown>): Promise<void> {
+async function callRpc(port: number, cookie: string, method: string, payload: Record<string, unknown>): Promise<unknown> {
   const deadline = Date.now() + 30_000
   let lastError: unknown
   while (Date.now() < deadline) {
@@ -397,8 +401,8 @@ async function callRpc(port: number, cookie: string, method: string, payload: Re
       continue
     }
     if (response.ok) {
-      const result = await response.json() as { result?: { ok?: boolean; error?: { message?: string } } }
-      if (result.result?.ok === true) return
+      const result = await response.json() as { result?: { ok?: boolean; value?: unknown; error?: { message?: string } } }
+      if (result.result?.ok === true) return result.result.value
       throw new Error(result.result?.error?.message || `DSH sidecar ${method} failed`)
     }
     lastError = new Error(`DSH sidecar ${method} failed with HTTP ${String(response.status)}`)
@@ -454,6 +458,7 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     defaultModel,
   })
   await linkSidecarPackage(home, '@nanmicoder/dsh-agent-teams')
+  await linkSidecarPackage(home, 'dsh-better-sidebar')
 
   const dshBin = join(dirname(require.resolve('@deepseek-ai/dsh/package.json')), 'lib', 'bin.js')
   const child = spawn(process.execPath, [
@@ -488,7 +493,21 @@ async function startSidecar(context: any, conversationId: string): Promise<DshWe
     cookie = await waitForReady(child, port)
     const workspacePath = join(home, 'workspace')
     await mkdir(workspacePath, { recursive: true })
-    await callRpc(port, cookie, 'workspace.create', { request: { path: workspacePath } })
+    await hydrateSidecarWorkspace(context, conversationId, workspacePath)
+    let workspaceId: string | undefined
+    try {
+      const created = await callRpc(port, cookie, 'workspace.create', { request: { path: workspacePath } }) as
+        | { workspace?: { workspaceId?: string }; workspaceId?: string }
+        | undefined
+      workspaceId = created?.workspace?.workspaceId ?? created?.workspaceId
+    } catch (error) {
+      console.warn('[dsh-web] workspace.create skipped:', error)
+    }
+    if (typeof workspaceId === 'string' && workspaceId) {
+      await callRpc(port, cookie, 'session.create', { request: { workspaceId } })
+    } else {
+      await callRpc(port, cookie, 'session.create', { request: { cwd: workspacePath } })
+    }
   } catch (error) {
     await Promise.allSettled([gateway.close(), mcp.close()])
     throw error

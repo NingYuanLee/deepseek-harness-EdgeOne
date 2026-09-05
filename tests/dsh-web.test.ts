@@ -9,7 +9,25 @@ test('build preparation installs the official DSH Web plugin graph', async () =>
   assert.match(html, /@deepseek-ai\/dsh-client-ui-conversation/)
   assert.match(html, /@deepseek-ai\/dsh-client-ui-trajectory/)
   assert.match(html, /@deepseek-ai\/dsh-client-ui-workspace/)
+  assert.match(html, /@nanmicoder\/dsh-agent-teams/)
+  assert.match(html, /dsh-better-sidebar/)
   assert.doesNotMatch(html, /@deepseek-ai\/dsh-client-ui-cordis/)
+})
+
+test('Agent Teams and the file sidebar are prepared into the Web roster', async () => {
+  const teams = await readFile(
+    new URL('../public/plugins/@nanmicoder/dsh-agent-teams/client.js', import.meta.url),
+    'utf8',
+  )
+  const sidebar = await readFile(
+    new URL('../public/plugins/dsh-better-sidebar/client.js', import.meta.url),
+    'utf8',
+  )
+  assert.match(teams, /id: "agent-teams-activity"/)
+  assert.match(teams, /ctx\.slots\.inject\("shell\.overlay"/)
+  assert.match(sidebar, /\/api\/sidebar\.proxy\?p=/)
+  assert.match(sidebar, /\/plugins\/dsh-better-sidebar\/client-\$\{name\}\.js/)
+  assert.doesNotMatch(sidebar, /fetch\(`\/sidebar\/api\/\$\{method\}`/)
 })
 
 test('Makers connection bundle uses SSE and injects conversation routing', async () => {

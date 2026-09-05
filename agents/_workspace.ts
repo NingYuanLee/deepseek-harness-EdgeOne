@@ -1,3 +1,7 @@
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { tmpdir } from 'node:os'
+
 const IGNORED_DIRECTORIES = new Set([
   '.git', '.next', '.cache', '.turbo', '.vite',
   'node_modules', 'dist', 'build', 'coverage', '__pycache__',
@@ -31,6 +35,36 @@ function safeSegment(value: string): string {
 
 export function workspaceRoot(conversationId: string): string {
   return `projects/${safeSegment(conversationId)}/workspace`
+}
+
+export function sidecarWorkspaceRoot(conversationId: string): string {
+  return join(tmpdir(), 'dsh-makers-web', safeSegment(conversationId), 'workspace')
+}
+
+async function mirrorFileToSidecar(conversationId: string, path: string, content: string): Promise<void> {
+  const dest = join(sidecarWorkspaceRoot(conversationId), path)
+  await mkdir(dirname(dest), { recursive: true })
+  await writeFile(dest, content, 'utf8')
+}
+
+export async function hydrateSidecarWorkspace(
+  context: any,
+  conversationId: string,
+  sidecarWorkspacePath = sidecarWorkspaceRoot(conversationId),
+): Promise<void> {
+  if (!context?.sandbox) return
+  try {
+    const items = await listWorkspace(context, conversationId)
+    for (const item of items) {
+      if (item.type !== 'file') continue
+      const file = await readWorkspaceFile(context, conversationId, item.path)
+      const dest = join(sidecarWorkspacePath, file.path)
+      await mkdir(dirname(dest), { recursive: true })
+      await writeFile(dest, file.content, 'utf8')
+    }
+  } catch (error) {
+    console.warn('[workspace] sidecar hydrate failed:', error)
+  }
 }
 
 export function normalizeWorkspacePath(value: string): string | null {
@@ -258,6 +292,11 @@ export async function writeWorkspaceFile(
   if (parent) await context.sandbox.files.makeDir(`${root}/${parent}`)
   await context.sandbox.files.write(`${root}/${path}`, content)
   await saveWorkspaceSnapshotFile(context, conversationId, path, content)
+  try {
+    await mirrorFileToSidecar(conversationId, path, content)
+  } catch (error) {
+    console.warn('[workspace] sidecar mirror failed:', error)
+  }
   return { path, bytes: new TextEncoder().encode(content).byteLength }
 }
 

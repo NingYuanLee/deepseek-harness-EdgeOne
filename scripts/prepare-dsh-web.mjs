@@ -7,6 +7,10 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const publicDir = join(root, 'public')
 const modulesRoot = join(root, 'node_modules', '@deepseek-ai')
 const webDist = join(modulesRoot, 'dsh-web-frontend', 'dist')
+const extraClientPackages = [
+  '@nanmicoder/dsh-agent-teams',
+  'dsh-better-sidebar',
+]
 const excluded = new Set([
   // The Makers deployment has no native desktop directory chooser. The
   // native row is retained because the upstream Web composition selects it;
@@ -920,6 +924,74 @@ function patchWorkspaceBundle(source) {
   return next
 }
 
+function rewriteSidebarClientUrls(source, label) {
+  let next = source
+  if (next.includes('const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;')) {
+    next = mustReplace(
+      next,
+      'const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;',
+      'const CHUNK_URL = (name) => `/plugins/dsh-better-sidebar/client-${name}.js`;',
+      `${label} chunk url`,
+    )
+  }
+  if (next.includes('response = await fetch(`/sidebar/api/${method}`, {')) {
+    next = mustReplace(
+      next,
+      'response = await fetch(`/sidebar/api/${method}`, {',
+      'response = await fetch(`/api/sidebar.proxy?p=${encodeURIComponent(`/sidebar/api/${method}`)}`, {',
+      `${label} api fetch`,
+    )
+  }
+  if (next.includes('response = await fetch(`/sidebar/upload?${params.toString()}`, {')) {
+    next = mustReplace(
+      next,
+      'response = await fetch(`/sidebar/upload?${params.toString()}`, {',
+      'response = await fetch(`/api/sidebar.proxy?p=${encodeURIComponent("/sidebar/upload")}&${params.toString()}`, {',
+      `${label} upload fetch`,
+    )
+  }
+  if (next.includes('return `/sidebar/file?${params.toString()}`;')) {
+    next = mustReplace(
+      next,
+      'return `/sidebar/file?${params.toString()}`;',
+      'return `/api/sidebar.proxy?p=${encodeURIComponent("/sidebar/file")}&${params.toString()}`;',
+      `${label} file url`,
+    )
+  }
+  if (next.includes('return `${origin}/sidebar/file?${params.toString()}`;')) {
+    next = mustReplace(
+      next,
+      'return `${origin}/sidebar/file?${params.toString()}`;',
+      'return `${origin}/api/sidebar.proxy?p=${encodeURIComponent("/sidebar/file")}&${params.toString()}`;',
+      `${label} origin file url`,
+    )
+  }
+  if (next.includes('return `${HTML_ROUTE_PREFIX}${encodeURIComponent(sessionId)}/${unc ? "/" : ""}${segments.map(encodeURIComponent).join("/")}`;')) {
+    next = mustReplace(
+      next,
+      'return `${HTML_ROUTE_PREFIX}${encodeURIComponent(sessionId)}/${unc ? "/" : ""}${segments.map(encodeURIComponent).join("/")}`;',
+      'return `/api/sidebar.proxy?p=${encodeURIComponent(`${HTML_ROUTE_PREFIX}${encodeURIComponent(sessionId)}/${unc ? "/" : ""}${segments.map(encodeURIComponent).join("/")}`)}`;',
+      `${label} html url`,
+    )
+  }
+  return next
+}
+
+function patchBetterSidebarBundle(source) {
+  return rewriteSidebarClientUrls(source, 'better-sidebar')
+}
+
+async function copyBetterSidebarChunks() {
+  const lib = join(root, 'node_modules', 'dsh-better-sidebar', 'lib')
+  const destDir = join(publicDir, 'plugins', 'dsh-better-sidebar')
+  await mkdir(destDir, { recursive: true })
+  for (const name of ['editor', 'terminal', 'mermaid', 'locale']) {
+    let source
+    try { source = await readFile(join(lib, `client-${name}.js`), 'utf8') } catch { continue }
+    await writeFile(join(destDir, `client-${name}.js`), rewriteSidebarClientUrls(source, `better-sidebar ${name}`))
+  }
+}
+
 function patchLocaleBundle(source) {
   return mustReplace(
     source,
@@ -963,27 +1035,54 @@ function patchSessionLogExportBundle(source) {
   )
 }
 
+function packageDirOf(name) {
+  return join(root, 'node_modules', ...name.split('/'))
+}
+
+async function officialClientPackageDirs() {
+  const rows = []
+  for (const directory of await readdir(modulesRoot)) {
+    rows.push(join(modulesRoot, directory))
+  }
+  return rows
+}
+
+function patchClientBundle(name, source) {
+  if (name === '@deepseek-ai/dsh-api-gateway') return patchGatewayBundle(source)
+  if (name === '@deepseek-ai/dsh-client-ui-agent-preset') return patchAgentPresetBundle(source)
+  if (name === '@deepseek-ai/dsh-client-ui-permission-presets') return patchPermissionPresetsBundle(source)
+  if (name === '@deepseek-ai/dsh-client-ui-conversation') return patchConversationBundle(source)
+  if (name === '@deepseek-ai/dsh-client-ui-workspace') return patchWorkspaceBundle(source)
+  if (name === '@deepseek-ai/dsh-client-ui-settings') return patchSettingsBundle(source)
+  if (name === '@deepseek-ai/dsh-client-ui-settings-models') return patchSettingsModelsBundle(source)
+  if (name === '@deepseek-ai/dsh-client-ui-model-selection') return patchModelSelectionBundle(source)
+  if (name === '@deepseek-ai/dsh-session-log-export') return patchSessionLogExportBundle(source)
+  if (name === '@deepseek-ai/dsh-client-locale') return patchLocaleBundle(source)
+  if (name === 'dsh-better-sidebar') return patchBetterSidebarBundle(source)
+  return source
+}
+
+async function readClientPackage(packageDir) {
+  let manifest
+  try { manifest = JSON.parse(await readFile(join(packageDir, 'package.json'), 'utf8')) } catch { return undefined }
+  const client = manifest.dsh?.client
+  if (client?.platform !== 'web' || excluded.has(manifest.name)) return undefined
+  let source
+  try { source = await readFile(join(packageDir, 'lib', 'client.js'), 'utf8') } catch { return undefined }
+  return { manifest, client, source: patchClientBundle(manifest.name, source) }
+}
+
 async function clientPackages() {
   const rows = []
   const sources = new Map()
-  for (const directory of await readdir(modulesRoot)) {
-    const packageDir = join(modulesRoot, directory)
-    let manifest
-    try { manifest = JSON.parse(await readFile(join(packageDir, 'package.json'), 'utf8')) } catch { continue }
-    const client = manifest.dsh?.client
-    if (client?.platform !== 'web' || excluded.has(manifest.name)) continue
-    let source
-    try { source = await readFile(join(packageDir, 'lib', 'client.js'), 'utf8') } catch { continue }
-    if (manifest.name === '@deepseek-ai/dsh-api-gateway') source = patchGatewayBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-client-ui-agent-preset') source = patchAgentPresetBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-client-ui-permission-presets') source = patchPermissionPresetsBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-client-ui-conversation') source = patchConversationBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-client-ui-workspace') source = patchWorkspaceBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-client-ui-settings') source = patchSettingsBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-client-ui-settings-models') source = patchSettingsModelsBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-client-ui-model-selection') source = patchModelSelectionBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-session-log-export') source = patchSessionLogExportBundle(source)
-    if (manifest.name === '@deepseek-ai/dsh-client-locale') source = patchLocaleBundle(source)
+  const packageDirs = [
+    ...await officialClientPackageDirs(),
+    ...extraClientPackages.map(packageDirOf),
+  ]
+  for (const packageDir of packageDirs) {
+    const loaded = await readClientPackage(packageDir)
+    if (!loaded) continue
+    const { manifest, client, source } = loaded
     const target = join(publicDir, 'plugins', ...manifest.name.split('/'), 'client.js')
     await mkdir(dirname(target), { recursive: true })
     await writeFile(target, source)
@@ -999,6 +1098,9 @@ async function clientPackages() {
       ...(client.immediately === true ? { immediately: true } : {}),
     })
     sources.set(manifest.name, source)
+  }
+  for (const name of extraClientPackages) {
+    if (!sources.has(name)) throw new Error(`Expected extra client plugin ${name} in the DSH Web roster.`)
   }
   return {
     rows: orderByModuleGraph(rows),
@@ -1239,6 +1341,7 @@ await rm(publicDir, { recursive: true, force: true })
 await mkdir(publicDir, { recursive: true })
 await cp(webDist, publicDir, { recursive: true })
 const { rows: entries, sources } = await clientPackages()
+await copyBetterSidebarChunks()
 if (entries.length < 30) throw new Error(`Expected the DSH Web roster, found only ${String(entries.length)} bundles.`)
 if (!sources.has(CLIENT_MODULES_ID)) throw new Error(`Expected ${CLIENT_MODULES_ID} in the DSH Web roster.`)
 const bootstrapIds = [CLIENT_MODULES_ID]

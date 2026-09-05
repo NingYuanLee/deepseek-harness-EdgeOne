@@ -315,8 +315,67 @@ async function snapshotSettingsAfterWrite(
   return new Response(bytes, { status: upstream.status, headers })
 }
 
+function sidebarUpstreamPath(context: any): string | undefined {
+  const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : '/api/sidebar.proxy', 'http://local')
+  const target = incomingUrl.searchParams.get('p')
+  if (!target || (!target.startsWith('/sidebar/') && target !== '/sidebar')) return undefined
+  if (target.includes('\\') || target.includes('\0') || target.includes('://')) return undefined
+  const forwarded = new URLSearchParams(incomingUrl.search)
+  forwarded.delete('p')
+  const query = forwarded.toString()
+  return query ? `${target}?${query}` : target
+}
+
+async function proxySidebar(context: any): Promise<Response> {
+  const target = sidebarUpstreamPath(context)
+  if (!target) {
+    return Response.json({ error: 'sidebar.proxy requires a /sidebar path' }, { status: 400 })
+  }
+  const sidecar = await getDshWebSidecar(context)
+  const method = String(context.request?.method || 'GET').toUpperCase()
+  const incomingType = String(context.request?.headers?.['content-type'] || context.request?.headers?.['Content-Type'] || '')
+  const incomingBody = context.request?.body
+  let body: BodyInit | undefined
+  const headers: Record<string, string> = {
+    accept: context.request?.headers?.accept || '*/*',
+    origin: `http://127.0.0.1:${String(sidecar.port)}`,
+    cookie: sidecar.cookie,
+  }
+  if (method !== 'GET' && method !== 'HEAD') {
+    if (incomingType.includes('octet-stream') && incomingBody != null) {
+      headers['content-type'] = 'application/octet-stream'
+      body = incomingBody instanceof Uint8Array
+        ? incomingBody
+        : typeof incomingBody === 'string'
+          ? incomingBody
+          : JSON.stringify(incomingBody)
+    } else {
+      headers['content-type'] = 'application/json'
+      body = JSON.stringify(incomingBody ?? {})
+    }
+  }
+  const upstream = await fetch(`http://127.0.0.1:${String(sidecar.port)}${target}`, {
+    method,
+    headers,
+    ...(body === undefined ? {} : { body }),
+    signal: context.request?.signal,
+  })
+  const responseHeaders = new Headers(upstream.headers)
+  responseHeaders.delete('content-encoding')
+  responseHeaders.delete('content-length')
+  responseHeaders.delete('transfer-encoding')
+  const type = responseHeaders.get('content-type') || ''
+  if (!type.includes('json') && !type.startsWith('text/')) {
+    const bytes = new Uint8Array(await upstream.arrayBuffer())
+    responseHeaders.set('x-content-type-stream', 'true')
+    return new Response(bytes, { status: upstream.status, headers: responseHeaders })
+  }
+  return new Response(upstream.body, { status: upstream.status, headers: responseHeaders })
+}
+
 async function proxy(context: any): Promise<Response> {
   const path = requestPath(context)
+  if (path === '/api/sidebar.proxy') return proxySidebar(context)
   if (path === '/api/remote.mux') return remoteMuxStream(context)
   if (path === '/api/events.mux') return eventStream(context, 'mux')
   if (path === '/api/events.host') return eventStream(context, 'host')
@@ -346,6 +405,7 @@ async function proxy(context: any): Promise<Response> {
     signal: context.request?.signal,
   })
   const headers = new Headers(upstream.headers)
+  headers.delete('content-encoding')
   headers.delete('content-length')
   headers.delete('transfer-encoding')
   if (path === '/api/session.export' && method === 'GET') {
