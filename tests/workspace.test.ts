@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { buildDocx, buildPptx, buildXlsx } from '../agents/_office-files.ts'
-import { commandFailureResult, listSandboxBrowserFiles, matchSandboxFileReferences, normalizeWorkspacePath, publishWorkspacePreview, readSandboxBrowserFile, runWorkspaceCommand, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
+import { commandFailureResult, deleteSandboxBrowserPath, listSandboxBrowserFiles, matchSandboxFileReferences, normalizeWorkspacePath, publishWorkspacePreview, readSandboxBrowserFile, runWorkspaceCommand, sanitizeUploadFileName, sidecarWorkspaceRoot, uploadSandboxBrowserFile, workspaceRoot, writeWorkspaceBytes, writeWorkspaceFile } from '../agents/_workspace.ts'
 
 test('sandbox file references match one directory level like the composer @ menu', () => {
   const items = [
@@ -151,6 +151,31 @@ test('sandbox browser lists and downloads files from the sidecar workspace', asy
   const file = await readSandboxBrowserFile(context, conversationId, 'notes/hello.txt')
   assert.equal(new TextDecoder().decode(file.bytes), 'hello sandbox')
   await assert.rejects(() => readSandboxBrowserFile(context, conversationId, '../secret'), /Invalid workspace file path/)
+  await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
+    recursive: true,
+    force: true,
+  })
+})
+
+test('sandbox browser can upload and delete files without leaving the workspace', async () => {
+  const conversationId = `upload-${Date.now()}`
+  const context = { store: { async getConversation() { return { metadata: {} } }, async updateConversation() {} } }
+  assert.equal(sanitizeUploadFileName('简历.md'), '简历.md')
+  assert.equal(sanitizeUploadFileName('C:\\\\Users\\\\x\\\\notes.txt'), 'notes.txt')
+  const uploaded = await uploadSandboxBrowserFile(
+    context,
+    conversationId,
+    'notes/hello.txt',
+    new TextEncoder().encode('uploaded sandbox'),
+  )
+  assert.equal(uploaded.path, 'notes/hello.txt')
+  const listed = await listSandboxBrowserFiles(context, conversationId)
+  assert.ok(listed.some(item => item.path === 'notes/hello.txt'))
+  await assert.rejects(() => uploadSandboxBrowserFile(context, conversationId, '../secret.txt', new Uint8Array([1])), /Invalid workspace file path/)
+  await assert.rejects(() => deleteSandboxBrowserPath(context, conversationId, '../secret'), /Invalid workspace file path/)
+  await deleteSandboxBrowserPath(context, conversationId, 'notes')
+  const after = await listSandboxBrowserFiles(context, conversationId)
+  assert.equal(after.some(item => item.path === 'notes' || item.path.startsWith('notes/')), false)
   await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
     recursive: true,
     force: true,

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { isOfficeDocumentPath } from './_office-files.ts'
@@ -506,6 +506,70 @@ function bytesFromUnknown(value: unknown): Uint8Array {
 
 const BROWSER_HIDDEN = new Set(['.agent-teams', '.dsh'])
 
+function assertBrowserVisiblePath(path: string): void {
+  if (path.split('/').some(part => BROWSER_HIDDEN.has(part))) {
+    throw new Error('Cannot change a system sandbox folder.')
+  }
+}
+
+export function sanitizeUploadFileName(name: string): string | null {
+  const base = String(name || '').replaceAll('\\', '/').split('/').pop() || ''
+  return normalizeWorkspacePath(base.replace(/[\u0000-\u001f<>:"|?*]/g, '').trim())
+}
+
+async function removeWorkspaceSnapshotPath(
+  context: any,
+  conversationId: string,
+  path: string,
+): Promise<void> {
+  const snapshot = await loadWorkspaceSnapshot(context, conversationId)
+  let changed = false
+  for (const key of Object.keys(snapshot)) {
+    if (key === path || key.startsWith(`${path}/`)) {
+      delete snapshot[key]
+      changed = true
+    }
+  }
+  if (!changed) return
+  try {
+    await updateConversationMetadata(context, conversationId, { workspaceSnapshot: snapshot })
+  } catch (error) {
+    console.warn('[workspace] snapshot delete failed:', error)
+  }
+}
+
+async function removeSandboxRemotePath(context: any, conversationId: string, path: string): Promise<void> {
+  if (usesDiskWorkspace(context) || !context?.sandbox) return
+  const root = workspaceRoot(conversationId)
+  const target = `${root}/${path}`
+  if (typeof context.sandbox.files?.remove === 'function') {
+    await context.sandbox.files.remove(target)
+    return
+  }
+  if (typeof context.sandbox.files?.delete === 'function') {
+    await context.sandbox.files.delete(target)
+    return
+  }
+  await invokeSandboxCommand(context, `rm -rf -- ${shellQuote(path)}`, { cwd: root, timeout: 30 })
+}
+
+async function writeSandboxRemoteBytes(
+  context: any,
+  conversationId: string,
+  path: string,
+  bytes: Uint8Array,
+): Promise<void> {
+  if (usesDiskWorkspace(context) || !context?.sandbox?.files?.write) return
+  const root = await ensureWorkspace(context, conversationId)
+  const parent = path.split('/').slice(0, -1).join('/')
+  if (parent) await context.sandbox.files.makeDir(`${root}/${parent}`)
+  try {
+    await context.sandbox.files.write(`${root}/${path}`, Buffer.from(bytes))
+  } catch {
+    await context.sandbox.files.write(`${root}/${path}`, new TextDecoder('utf8', { fatal: false }).decode(bytes))
+  }
+}
+
 export function matchSandboxFileReferences(
   items: WorkspaceItem[],
   query: string,
@@ -609,6 +673,63 @@ export async function writeWorkspaceBytes(
   await mkdir(dirname(dest), { recursive: true })
   await writeFile(dest, Buffer.from(bytes))
   return { path, bytes: bytes.byteLength }
+}
+
+export async function uploadSandboxBrowserFile(
+  context: any,
+  conversationId: string,
+  requestedPath: string,
+  bytes: Uint8Array,
+): Promise<{ path: string; bytes: number }> {
+  const raw = String(requestedPath || '').replaceAll('\\', '/')
+  const path = raw.includes('/') ? normalizeWorkspacePath(raw) : sanitizeUploadFileName(raw)
+  if (!path) throw new Error('Invalid workspace file path.')
+  assertBrowserVisiblePath(path)
+  if (bytes.byteLength === 0) throw new Error('File is empty.')
+  if (bytes.byteLength > DOWNLOAD_BYTE_LIMIT) throw new Error('File is larger than 20MB.')
+  const written = await writeWorkspaceBytes(context, conversationId, path, bytes)
+  if (!isOfficeDocumentPath(path)) {
+    try {
+      const text = new TextDecoder('utf8', { fatal: true }).decode(bytes)
+      await saveWorkspaceSnapshotFile(context, conversationId, path, text)
+    } catch {
+      // Binary uploads stay on disk only.
+    }
+  }
+  try {
+    await writeSandboxRemoteBytes(context, conversationId, path, bytes)
+  } catch (error) {
+    console.warn('[workspace] sandbox upload mirror failed:', error)
+  }
+  return written
+}
+
+export async function deleteSandboxBrowserPath(
+  context: any,
+  conversationId: string,
+  requestedPath: string,
+): Promise<{ path: string }> {
+  const path = normalizeWorkspacePath(requestedPath)
+  if (!path) throw new Error('Invalid workspace file path.')
+  assertBrowserVisiblePath(path)
+  await mkdir(sidecarWorkspaceRoot(conversationId), { recursive: true })
+  const dest = diskFilePath(conversationId, path)
+  let existed = false
+  try {
+    await stat(dest)
+    existed = true
+  } catch {
+    existed = false
+  }
+  if (existed) await rm(dest, { recursive: true, force: true })
+  await removeWorkspaceSnapshotPath(context, conversationId, path)
+  try {
+    await removeSandboxRemotePath(context, conversationId, path)
+  } catch (error) {
+    console.warn('[workspace] sandbox delete mirror failed:', error)
+  }
+  if (!existed && usesDiskWorkspace(context)) throw new Error('File not found.')
+  return { path }
 }
 
 export async function runWorkspaceCommand(

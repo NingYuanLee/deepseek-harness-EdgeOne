@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import WebSocket from 'ws'
 import { getDshWebSidecar, snapshotDshSettingsYaml, type DshWebSidecar } from '../_dsh-web-sidecar.ts'
-import { listSandboxBrowserFiles, matchSandboxFileReferences, readSandboxBrowserFile, sidecarWorkspaceRoot } from '../_workspace.ts'
+import { deleteSandboxBrowserPath, listSandboxBrowserFiles, matchSandboxFileReferences, readSandboxBrowserFile, sidecarWorkspaceRoot, uploadSandboxBrowserFile } from '../_workspace.ts'
 
 function requestPath(context: any): string {
   const value = typeof context.request?.url === 'string' ? context.request.url : '/api'
@@ -420,6 +420,33 @@ async function listSandboxFileReferences(context: any): Promise<Response> {
   })
 }
 
+function sandboxFileError(error: unknown): Response {
+  const message = error instanceof Error ? error.message : String(error)
+  const status = /Invalid workspace file path|File is empty|File is larger than|File not found|system sandbox folder/.test(message)
+    ? 400
+    : 500
+  return Response.json({ error: message }, { status })
+}
+
+function bytesFromBase64(value: string): Uint8Array {
+  return new Uint8Array(Buffer.from(value, 'base64'))
+}
+
+function uploadBytesFromBody(body: unknown): { path: string; bytes: Uint8Array } | undefined {
+  if (body instanceof Uint8Array) return { path: '', bytes: body }
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(body)) return { path: '', bytes: new Uint8Array(body) }
+  const record = asRecord(body)
+  if (!record) return undefined
+  const path = String(record.path || record.name || '')
+  if (typeof record.contentBase64 === 'string') {
+    return { path, bytes: bytesFromBase64(record.contentBase64) }
+  }
+  if (typeof record.content === 'string') {
+    return { path, bytes: new TextEncoder().encode(record.content) }
+  }
+  return undefined
+}
+
 async function downloadSandboxFile(context: any): Promise<Response> {
   const conversationId = String(context.conversation_id || '').trim()
   if (!conversationId) {
@@ -427,14 +454,59 @@ async function downloadSandboxFile(context: any): Promise<Response> {
   }
   const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : '/api/sandbox/file', 'http://local')
   const requested = queryValue(context, incomingUrl, 'path')
-  const file = await readSandboxBrowserFile(context, conversationId, requested)
-  const headers = new Headers({
-    'content-type': file.contentType,
-    'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(file.path.split('/').pop() || file.path)}`,
-    'cache-control': 'no-store',
-    'x-content-type-stream': 'true',
-  })
-  return new Response(file.bytes, { status: 200, headers })
+  try {
+    const file = await readSandboxBrowserFile(context, conversationId, requested)
+    const headers = new Headers({
+      'content-type': file.contentType,
+      'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(file.path.split('/').pop() || file.path)}`,
+      'cache-control': 'no-store',
+      'x-content-type-stream': 'true',
+    })
+    return new Response(file.bytes, { status: 200, headers })
+  } catch (error) {
+    return sandboxFileError(error)
+  }
+}
+
+async function uploadSandboxFile(context: any): Promise<Response> {
+  const conversationId = String(context.conversation_id || '').trim()
+  if (!conversationId) {
+    return Response.json({ error: 'makers-conversation-id is required for the sandbox workspace.' }, { status: 400 })
+  }
+  const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : '/api/sandbox/file', 'http://local')
+  const parsed = uploadBytesFromBody(context.request?.body)
+  const requested = queryValue(context, incomingUrl, 'path') || parsed?.path || ''
+  if (!parsed) {
+    return Response.json({ error: 'Upload requires JSON content or contentBase64.' }, { status: 400 })
+  }
+  try {
+    const file = await uploadSandboxBrowserFile(context, conversationId, requested, parsed.bytes)
+    return Response.json({ ok: true, path: file.path, bytes: file.bytes })
+  } catch (error) {
+    return sandboxFileError(error)
+  }
+}
+
+async function deleteSandboxFile(context: any): Promise<Response> {
+  const conversationId = String(context.conversation_id || '').trim()
+  if (!conversationId) {
+    return Response.json({ error: 'makers-conversation-id is required for the sandbox workspace.' }, { status: 400 })
+  }
+  const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : '/api/sandbox/file', 'http://local')
+  const requested = queryValue(context, incomingUrl, 'path') || String(asRecord(context.request?.body)?.path || '')
+  try {
+    const result = await deleteSandboxBrowserPath(context, conversationId, requested)
+    return Response.json({ ok: true, path: result.path })
+  } catch (error) {
+    return sandboxFileError(error)
+  }
+}
+
+async function handleSandboxFile(context: any): Promise<Response> {
+  const method = String(context.request?.method || 'GET').toUpperCase()
+  if (method === 'DELETE') return deleteSandboxFile(context)
+  if (method === 'POST' || method === 'PUT') return uploadSandboxFile(context)
+  return downloadSandboxFile(context)
 }
 
 function isWorkspaceCreatePath(path: string): boolean {
@@ -608,7 +680,7 @@ async function proxy(context: any): Promise<Response> {
   if (path === '/api/events.host') return eventStream(context, 'host')
   if (path === '/api/directoryPicker/pick') return pickSandboxDirectory(context)
   if (path === '/api/sandbox/files') return listSandboxFiles(context)
-  if (path === '/api/sandbox/file') return downloadSandboxFile(context)
+  if (path === '/api/sandbox/file') return handleSandboxFile(context)
   if (path === '/api/fileReferences/list' || path === '/api/fileReferences.list') {
     return listSandboxFileReferences(context)
   }
