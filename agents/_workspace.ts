@@ -13,6 +13,27 @@ const IGNORED_FILES = new Set(['.DS_Store', 'preview'])
 const TEXT_PREVIEW_LIMIT = 512 * 1024
 const SNAPSHOT_FILE_LIMIT = 80
 const SNAPSHOT_BYTE_LIMIT = 2 * 1024 * 1024
+const DOWNLOAD_BYTE_LIMIT = 20 * 1024 * 1024
+
+const CONTENT_TYPES: Record<string, string> = {
+  css: 'text/css; charset=utf-8',
+  gif: 'image/gif',
+  htm: 'text/html; charset=utf-8',
+  html: 'text/html; charset=utf-8',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  js: 'text/javascript; charset=utf-8',
+  json: 'application/json; charset=utf-8',
+  md: 'text/markdown; charset=utf-8',
+  png: 'image/png',
+  svg: 'image/svg+xml',
+  txt: 'text/plain; charset=utf-8',
+  webp: 'image/webp',
+  xml: 'application/xml; charset=utf-8',
+  yaml: 'text/yaml; charset=utf-8',
+  yml: 'text/yaml; charset=utf-8',
+  zip: 'application/zip',
+}
 
 interface WorkspaceSnapshotFile {
   content: string
@@ -404,6 +425,63 @@ export async function readWorkspaceFile(
     ? new TextDecoder().decode(encoded.slice(0, TEXT_PREVIEW_LIMIT))
     : content
   return { path, content: visible, size: encoded.byteLength, truncated }
+}
+
+function contentTypeFor(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() || ''
+  return CONTENT_TYPES[ext] || 'application/octet-stream'
+}
+
+function bytesFromUnknown(value: unknown): Uint8Array {
+  if (value instanceof Uint8Array) return value
+  if (value instanceof ArrayBuffer) return new Uint8Array(value)
+  if (typeof value === 'string') return new TextEncoder().encode(value)
+  if (value && typeof value === 'object' && 'content' in value) {
+    return bytesFromUnknown((value as { content?: unknown }).content)
+  }
+  return new Uint8Array()
+}
+
+const BROWSER_HIDDEN = new Set(['.agent-teams', '.dsh'])
+
+export async function listSandboxBrowserFiles(
+  context: any,
+  conversationId: string,
+): Promise<WorkspaceItem[]> {
+  await mkdir(sidecarWorkspaceRoot(conversationId), { recursive: true })
+  await hydrateSidecarWorkspace(context, conversationId)
+  return (await listWorkspaceFromDisk(conversationId))
+    .filter(item => !item.path.split('/').some(part => BROWSER_HIDDEN.has(part)))
+}
+
+export async function readSandboxBrowserFile(
+  context: any,
+  conversationId: string,
+  requestedPath: string,
+): Promise<{ path: string; bytes: Uint8Array; contentType: string }> {
+  const path = normalizeWorkspacePath(requestedPath)
+  if (!path) throw new Error('Invalid workspace file path.')
+  await mkdir(sidecarWorkspaceRoot(conversationId), { recursive: true })
+  await hydrateSidecarWorkspace(context, conversationId)
+  try {
+    const buffer = await readFile(diskFilePath(conversationId, path))
+    if (buffer.byteLength > DOWNLOAD_BYTE_LIMIT) {
+      throw new Error('File is larger than 20MB.')
+    }
+    return { path, bytes: new Uint8Array(buffer), contentType: contentTypeFor(path) }
+  } catch (error) {
+    const code = error && typeof error === 'object' && 'code' in error
+      ? String((error as { code?: unknown }).code || '')
+      : ''
+    if (code !== 'ENOENT' || usesDiskWorkspace(context) || !context?.sandbox?.files?.read) {
+      throw error instanceof Error ? error : new Error('Failed to read sandbox file.')
+    }
+  }
+  const root = await ensureWorkspace(context, conversationId)
+  const result = await context.sandbox.files.read(`${root}/${path}`)
+  const bytes = bytesFromUnknown(result)
+  if (bytes.byteLength > DOWNLOAD_BYTE_LIMIT) throw new Error('File is larger than 20MB.')
+  return { path, bytes, contentType: contentTypeFor(path) }
 }
 
 export async function writeWorkspaceFile(

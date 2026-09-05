@@ -3,7 +3,7 @@ import { readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { normalizeWorkspacePath, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceFile } from '../agents/_workspace.ts'
+import { listSandboxBrowserFiles, normalizeWorkspacePath, readSandboxBrowserFile, sidecarWorkspaceRoot, workspaceRoot, writeWorkspaceFile } from '../agents/_workspace.ts'
 
 test('workspace paths stay relative and traversal-free', () => {
   assert.equal(normalizeWorkspacePath('src/App.tsx'), 'src/App.tsx')
@@ -117,6 +117,21 @@ test('writeWorkspaceFile uses the sidecar disk workspace when sandbox is absent'
     await readFile(join(sidecarWorkspaceRoot(conversationId), 'src', 'hello.txt'), 'utf8'),
     'hello sandbox',
   )
+  await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
+    recursive: true,
+    force: true,
+  })
+})
+
+test('sandbox browser lists and downloads files from the sidecar workspace', async () => {
+  const conversationId = `browse-${Date.now()}`
+  const context = { store: { async getConversation() { return { metadata: {} } }, async updateConversation() {} } }
+  await writeWorkspaceFile(context, conversationId, 'notes/hello.txt', 'hello sandbox')
+  const items = await listSandboxBrowserFiles(context, conversationId)
+  assert.ok(items.some(item => item.path === 'notes/hello.txt' && item.type === 'file'))
+  const file = await readSandboxBrowserFile(context, conversationId, 'notes/hello.txt')
+  assert.equal(new TextDecoder().decode(file.bytes), 'hello sandbox')
+  await assert.rejects(() => readSandboxBrowserFile(context, conversationId, '../secret'), /Invalid workspace file path/)
   await rm(join(tmpdir(), 'dsh-makers-web', conversationId.replace(/[^a-zA-Z0-9_-]/g, '_')), {
     recursive: true,
     force: true,

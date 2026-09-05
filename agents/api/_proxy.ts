@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import WebSocket from 'ws'
 import { getDshWebSidecar, snapshotDshSettingsYaml, type DshWebSidecar } from '../_dsh-web-sidecar.ts'
-import { sidecarWorkspaceRoot } from '../_workspace.ts'
+import { listSandboxBrowserFiles, readSandboxBrowserFile, sidecarWorkspaceRoot } from '../_workspace.ts'
 
 function requestPath(context: any): string {
   const value = typeof context.request?.url === 'string' ? context.request.url : '/api'
@@ -23,6 +23,16 @@ function pathAliases(...paths: string[]): Set<string> {
     aliases.add(officialSidecarPath(path))
   }
   return aliases
+}
+
+function queryValue(context: any, incomingUrl: URL, key: string): string {
+  const fromUrl = incomingUrl.searchParams.get(key)
+  if (fromUrl) return fromUrl
+  const query = context.request?.query
+  if (!query || typeof query !== 'object' || Array.isArray(query)) return ''
+  const value = (query as Record<string, unknown>)[key]
+  if (Array.isArray(value)) return String(value[0] ?? '')
+  return value === undefined || value === null ? '' : String(value)
 }
 
 function requestSearch(context: any, incomingUrl: URL): string {
@@ -368,6 +378,35 @@ async function pickSandboxDirectory(context: any): Promise<Response> {
   })
 }
 
+async function listSandboxFiles(context: any): Promise<Response> {
+  const conversationId = String(context.conversation_id || '').trim()
+  if (!conversationId) {
+    return Response.json({ error: 'makers-conversation-id is required for the sandbox workspace.' }, { status: 400 })
+  }
+  const items = await listSandboxBrowserFiles(context, conversationId)
+  return Response.json({
+    root: 'EdgeOne 沙箱',
+    items,
+  })
+}
+
+async function downloadSandboxFile(context: any): Promise<Response> {
+  const conversationId = String(context.conversation_id || '').trim()
+  if (!conversationId) {
+    return Response.json({ error: 'makers-conversation-id is required for the sandbox workspace.' }, { status: 400 })
+  }
+  const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : '/api/sandbox/file', 'http://local')
+  const requested = queryValue(context, incomingUrl, 'path')
+  const file = await readSandboxBrowserFile(context, conversationId, requested)
+  const headers = new Headers({
+    'content-type': file.contentType,
+    'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(file.path.split('/').pop() || file.path)}`,
+    'cache-control': 'no-store',
+    'x-content-type-stream': 'true',
+  })
+  return new Response(file.bytes, { status: 200, headers })
+}
+
 function isWorkspaceCreatePath(path: string): boolean {
   return path === '/api/workspace/create' || path === '/api/workspace.create'
 }
@@ -538,6 +577,8 @@ async function proxy(context: any): Promise<Response> {
   if (path === '/api/events.mux') return eventStream(context, 'mux')
   if (path === '/api/events.host') return eventStream(context, 'host')
   if (path === '/api/directoryPicker/pick') return pickSandboxDirectory(context)
+  if (path === '/api/sandbox/files') return listSandboxFiles(context)
+  if (path === '/api/sandbox/file') return downloadSandboxFile(context)
   if (
     path === '/api/agent-teams/state'
     || path === '/api/agent-teams/plan'

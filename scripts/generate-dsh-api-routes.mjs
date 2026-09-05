@@ -23,6 +23,7 @@ const methods = [
   'goals/clear', 'goals/complete', 'goals/create', 'goals/edit', 'goals/pause', 'goals/resume',
   'pluginInventory/list',
   'agent-teams/state', 'agent-teams/plan', 'agent-teams/halt',
+  'sandbox/files', 'sandbox/file',
   'sidebar.proxy',
   'messageFeedback/delete', 'messageFeedback/list', 'messageFeedback/put',
   'workspace/create', 'workspace/rename', 'workspace/delete', 'workspace/archiveSession',

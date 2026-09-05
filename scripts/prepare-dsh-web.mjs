@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { sandboxBrowserMarkup } from './makers-sandbox-browser.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const publicDir = join(root, 'public')
@@ -757,7 +758,7 @@ function patchConversationBundle(source) {
   next = mustReplace(
     next,
     '.pXSMma_workspace{max-width:min(100%,360px);min-height:28px;color:var(--dsw-alias-label-primary);cursor:pointer;background:0 0;border:none;border-radius:16px;align-items:center;gap:4px;padding:0 8px;font-size:13px;font-weight:500;line-height:20px;display:inline-flex}.pXSMma_workspace:not(:disabled):hover,.pXSMma_workspace[aria-expanded=true]{background:var(--dsw-alias-interactive-bg-hover)}.pXSMma_workspace:disabled{cursor:default}',
-    '.pXSMma_workspace{max-width:min(100%,360px);min-height:28px;color:var(--dsw-alias-label-primary);cursor:default;background:0 0;border:none;border-radius:16px;align-items:center;gap:4px;padding:0 8px;font-size:13px;font-weight:500;line-height:20px;display:inline-flex}',
+    '.pXSMma_workspace{max-width:min(100%,360px);min-height:28px;color:var(--dsw-alias-label-primary);cursor:pointer;background:0 0;border:none;border-radius:16px;align-items:center;gap:4px;padding:0 8px;font-size:13px;font-weight:500;line-height:20px;display:inline-flex}',
     'workspace chip static css',
   )
   next = mustReplace(
@@ -791,10 +792,14 @@ function patchConversationBundle(source) {
 			});
 		}`,
     `		function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }) {
-			return (0, react_jsx_runtime.jsxs)("span", {
+			return (0, react_jsx_runtime.jsxs)("button", {
 				ref: buttonRef,
+				type: "button",
 				className: HeroShell_module_css_default.workspace,
 				"aria-label": t("hero.cloudWorkspace"),
+				onClick: () => {
+					window.dispatchEvent(new CustomEvent("dsh-makers:open-sandbox"));
+				},
 				children: [
 					(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconFolderOpen16, {
 						className: HeroShell_module_css_default.folder,
@@ -1283,6 +1288,7 @@ const makersActionsHead = [
   '  else document.addEventListener("DOMContentLoaded", mount);',
   '})();',
   '</script>',
+  sandboxBrowserMarkup,
   '<!-- /dsh-makers-actions -->',
 ].join('\n')
 
