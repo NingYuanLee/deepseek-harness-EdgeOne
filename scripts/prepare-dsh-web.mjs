@@ -61,13 +61,13 @@ function patchSettingsModelsBundle(source) {
   next = mustReplace(
     next,
     '			intro: "Enter your API keys to use models from the following providers.",',
-    '			intro: "Enter your API keys to use models from the following providers.",\n			officialProvided: "Models come from the official DeepSeek API. The key is read only from DEEPSEEK_API_KEY.",\n			learnMore: "Learn more",',
+    '			intro: "Enter your API keys to use models from the following providers.",\n			officialProvided: "Models come from the official DeepSeek API. Image input is enabled for DeepSeek-V4-Flash-Vision. The key is read only from DEEPSEEK_API_KEY.",\n			learnMore: "Learn more",',
     'en official models copy',
   )
   next = mustReplace(
     next,
     '			intro: "填入各提供方的 API 密钥即可使用其模型。",',
-    '			intro: "填入各提供方的 API 密钥即可使用其模型。",\n			officialProvided: "模型由 DeepSeek 原厂提供，API Key 仅从环境变量 DEEPSEEK_API_KEY 读取。",\n			learnMore: "了解更多",',
+    '			intro: "填入各提供方的 API 密钥即可使用其模型。",\n			officialProvided: "模型由 DeepSeek 原厂提供，已开启图片输入（DeepSeek-V4-Flash-Vision）。API Key 仅从环境变量 DEEPSEEK_API_KEY 读取。",\n			learnMore: "了解更多",',
     'zh official models copy',
   )
   next = mustReplace(
@@ -151,7 +151,8 @@ function patchModelSelectionBundle(source) {
     source,
     '		var ModelDirectory = class {',
     `		function officialVisionGroups(groups) {
-			const official = groups.find((group) => group.id === "deepseek-official");
+			const official = groups.find((group) => group.id === "deepseek")
+				?? groups.find((group) => group.id === "deepseek-official");
 			const listed = (official?.models ?? []).find((model) => model.id === "deepseek-v4-flash-vision-exp");
 			const vision = listed ?? {
 				id: "deepseek-v4-flash-vision-exp",
@@ -160,7 +161,7 @@ function patchModelSelectionBundle(source) {
 				...official?.models?.[0]?.reasoning ? { reasoning: official.models[0].reasoning } : {}
 			};
 			return [{
-				id: "deepseek-official",
+				id: official?.id ?? "deepseek",
 				name: official?.name ?? "DeepSeek",
 				models: [vision]
 			}];

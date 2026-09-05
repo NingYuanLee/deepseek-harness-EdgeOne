@@ -12,7 +12,8 @@ window.__ModuleLoader__.load({
 		//#region lib/types/client/directory.js
 		/** One session's shared directory controller; disposed with the session scope. */
 		function officialVisionGroups(groups) {
-			const official = groups.find((group) => group.id === "deepseek-official");
+			const official = groups.find((group) => group.id === "deepseek")
+				?? groups.find((group) => group.id === "deepseek-official");
 			const listed = (official?.models ?? []).find((model) => model.id === "deepseek-v4-flash-vision-exp");
 			const vision = listed ?? {
 				id: "deepseek-v4-flash-vision-exp",
@@ -21,7 +22,7 @@ window.__ModuleLoader__.load({
 				...official?.models?.[0]?.reasoning ? { reasoning: official.models[0].reasoning } : {}
 			};
 			return [{
-				id: "deepseek-official",
+				id: official?.id ?? "deepseek",
 				name: official?.name ?? "DeepSeek",
 				models: [vision]
 			}];

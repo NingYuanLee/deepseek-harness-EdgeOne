@@ -158,7 +158,8 @@ async function freePort(): Promise<number> {
   return port
 }
 
-const OFFICIAL_PROVIDER = 'deepseek-official'
+/** pi-ai official DeepSeek route. rc.6 `llm-deepseek` / `deepseek-official` is text-only. */
+const OFFICIAL_PROVIDER = 'deepseek'
 const MAKERS_GATEWAY_API_KEY_ENV = 'MAKERS_GATEWAY_API_KEY'
 const DEFAULT_OFFICIAL_MODEL = 'deepseek-v4-flash-vision-exp'
 const DEFAULT_OFFICIAL_BASE_URL = 'https://api.deepseek.com'
@@ -175,6 +176,53 @@ function officialDefaultModelSection(defaultModel: string): string {
     `  model: ${JSON.stringify(defaultModel)}`,
     '',
   ].join('\n')
+}
+
+function officialVisionProviderLines(indent: string, defaultModel: string): string[] {
+  return [
+    'providers:',
+    `  ${OFFICIAL_PROVIDER}:`,
+    '    displayName: DeepSeek',
+    '    apiKeyEnv: DEEPSEEK_API_KEY',
+    '    api: openai-completions',
+    `    baseURL: ${JSON.stringify(DEFAULT_OFFICIAL_BASE_URL)}`,
+    '    defaultInput:',
+    '      - text',
+    '      - image',
+    '    compat:',
+    '      thinkingFormat: deepseek',
+    '    models:',
+    `      - id: ${JSON.stringify(defaultModel)}`,
+    '        name: DeepSeek-V4-Flash-Vision',
+    '        input:',
+    '          - text',
+    '          - image',
+    '        contextWindow: 1000000',
+    '        maxTokens: 256000',
+    '        reasoningEfforts:',
+    '          off:',
+    '          high: high',
+    '          max: max',
+  ].map(line => `${indent}${line}`)
+}
+
+function officialVisionProviderSection(defaultModel: string): string {
+  return ['llm-pi-ai:', ...officialVisionProviderLines('  ', defaultModel), ''].join('\n')
+}
+
+function upsertYamlSection(yaml: string, name: string, section: string): string {
+  const re = new RegExp(`^${name}:\\n(?:[ \\t]+.*\\n)*`, 'm')
+  if (!yaml.trim()) return section
+  return re.test(yaml)
+    ? yaml.replace(re, section)
+    : `${yaml.replace(/\s*$/, '')}\n\n${section}`
+}
+
+function hasOfficialVisionProvider(yaml: string, defaultModel: string): boolean {
+  const block = yaml.match(/^llm-pi-ai:\n((?:[ \t]+.*\n)*)/m)?.[1] ?? ''
+  return block.includes(`${OFFICIAL_PROVIDER}:`)
+    && block.includes(defaultModel)
+    && /input:[\s\S]*-\s*image/.test(block)
 }
 
 function officialDefaultModel(context: any): string {
@@ -195,7 +243,7 @@ function settingsProviderOf(yaml: string, namespace: string): string | undefined
   return settingsFieldOf(yaml, namespace, 'provider')
 }
 
-/** Seed or migrate the Host default to official DeepSeek unless the user already picked that provider. */
+/** Seed or migrate the Host default to official DeepSeek vision (text + image). */
 export async function ensureOfficialDefaultModelSettings(home: string, defaultModel: string): Promise<void> {
   const path = join(home, DSH_SETTINGS_FILE)
   let yaml = ''
@@ -207,16 +255,13 @@ export async function ensureOfficialDefaultModelSettings(home: string, defaultMo
       : ''
     if (code !== 'ENOENT') throw error
   }
-  if (
-    settingsProviderOf(yaml, 'agent-default-model') === OFFICIAL_PROVIDER
+  const modelReady = settingsProviderOf(yaml, 'agent-default-model') === OFFICIAL_PROVIDER
     && settingsFieldOf(yaml, 'agent-default-model', 'model') === defaultModel
-  ) return
-  const section = officialDefaultModelSection(defaultModel)
-  const next = yaml.trim()
-    ? /^agent-default-model:/m.test(yaml)
-      ? yaml.replace(/^agent-default-model:\n(?:[ \t]+.*\n)*/m, section)
-      : `${yaml.replace(/\s*$/, '')}\n\n${section}`
-    : section
+  const visionReady = hasOfficialVisionProvider(yaml, defaultModel)
+  if (modelReady && visionReady) return
+  let next = yaml
+  if (!modelReady) next = upsertYamlSection(next, 'agent-default-model', officialDefaultModelSection(defaultModel))
+  if (!visionReady) next = upsertYamlSection(next, 'llm-pi-ai', officialVisionProviderSection(defaultModel))
   await mkdir(home, { recursive: true })
   await writeFile(path, next)
 }
@@ -287,7 +332,7 @@ async function writeProfilePatch(
     '',
     '- id: llm-pi-ai',
     '  config:',
-    '    providers: {}',
+    ...officialVisionProviderLines('    ', options.defaultModel),
     '',
     '- insert:',
     '    - id: makers-mcp',

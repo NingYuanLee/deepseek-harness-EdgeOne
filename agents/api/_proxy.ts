@@ -161,6 +161,13 @@ function rejectLockedModelConfig(rpcId: unknown, reason: string): Response {
   })
 }
 
+function rewriteTextOnlyOfficialProvider(body: unknown): unknown {
+  const envelope = asRecord(body)
+  const payload = asRecord(envelope?.payload)
+  if (!envelope || !payload || payload.provider !== 'deepseek-official') return body
+  return { ...envelope, payload: { ...payload, provider: 'deepseek' } }
+}
+
 function requestedLockedModelConfig(path: string, body: unknown): string | undefined {
   if (LOCKED_CREDENTIAL_PATHS.has(path)) return path
   const envelope = asRecord(body)
@@ -227,7 +234,9 @@ async function proxy(context: any): Promise<Response> {
   const incomingUrl = new URL(typeof context.request?.url === 'string' ? context.request.url : path, 'http://local')
   const upstreamUrl = new URL(`${incomingUrl.pathname}${requestSearch(context, incomingUrl)}`, `http://127.0.0.1:${String(sidecar.port)}`)
   const method = String(context.request?.method || 'POST').toUpperCase()
-  const body = method === 'GET' || method === 'HEAD' ? undefined : JSON.stringify(context.request?.body ?? {})
+  const body = method === 'GET' || method === 'HEAD'
+    ? undefined
+    : JSON.stringify(rewriteTextOnlyOfficialProvider(context.request?.body ?? {}))
   const upstream = await fetch(upstreamUrl, {
     method,
     headers: {
