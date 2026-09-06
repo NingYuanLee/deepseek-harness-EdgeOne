@@ -78663,7 +78663,7 @@ window.__ModuleLoader__.load({
 				let disposed = false;
 				const reconcile = () => {
 					if (disposed) return;
-					if (this.clearArchivedCurrent()) return;
+					if (this.clearArchivedCurrent()) initial = "waiting";
 					if (initial !== "waiting") return;
 					const workspace = this.workspaces.list.getSnapshot();
 					const sessions = this.sessions.list.getSnapshot();
@@ -80117,7 +80117,7 @@ window.__ModuleLoader__.load({
 				setDrag(null);
 				const group = groups.find((candidate) => candidate.key === activeDrag.accountKey);
 				if (group === void 0) return;
-				const sessionsExpanded = expandedSessionGroups.includes(group.key);
+				const sessionsExpanded = true;
 				const renderedSessions = sessionsExpanded ? group.sessions : collapsedSessionRows(group.sessions).rows;
 				const targetIndex = renderedSessions.findIndex((session) => session.id === over.id);
 				if (targetIndex === -1) return;
@@ -80190,7 +80190,7 @@ window.__ModuleLoader__.load({
 						}), groups.map((group) => {
 							const workspaceId = group.workspaceId;
 							const collapsed = collapsedSessionRows(group.sessions);
-							const sessionsExpanded = expandedSessionGroups.includes(group.key);
+							const sessionsExpanded = true;
 							const workspaceMarker = workspaceId !== void 0 && workspaceDrag?.over?.id === workspaceId ? workspaceDrag.over.half : null;
 							const workspaceDragProps = workspaceId === void 0 ? void 0 : {
 								start: () => {

@@ -1064,6 +1064,30 @@ function patchWorkspaceBundle(source) {
   )
   next = mustReplace(
     next,
+    `				const sessionsExpanded = expandedSessionGroups.includes(group.key);
+				const renderedSessions = sessionsExpanded ? group.sessions : collapsedSessionRows(group.sessions).rows;`,
+    `				const sessionsExpanded = true;
+				const renderedSessions = sessionsExpanded ? group.sessions : collapsedSessionRows(group.sessions).rows;`,
+    'show every session row when dragging',
+  )
+  next = mustReplace(
+    next,
+    `							const collapsed = collapsedSessionRows(group.sessions);
+							const sessionsExpanded = expandedSessionGroups.includes(group.key);`,
+    `							const collapsed = collapsedSessionRows(group.sessions);
+							const sessionsExpanded = true;`,
+    'show every session row',
+  )
+  next = mustReplace(
+    next,
+    `					if (this.clearArchivedCurrent()) return;
+					if (initial !== "waiting") return;`,
+    `					if (this.clearArchivedCurrent()) initial = "waiting";
+					if (initial !== "waiting") return;`,
+    're-adopt after archiving the current session',
+  )
+  next = mustReplace(
+    next,
     `					const target = recentWorkspace(workspace.items, sessions.byId);
 					if (target === void 0) {
 						initial = "done";
